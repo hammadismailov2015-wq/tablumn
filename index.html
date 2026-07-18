@@ -187,8 +187,13 @@
     border-radius: 6px; font-size: 13px; font-weight: 700; background: rgba(255,255,255,.03);
     font-variant-numeric: tabular-nums;
   }
-  .pcell.head { background: var(--violet); color: #fff; }
+  .pcell.head { background: var(--violet); color: #fff; cursor: pointer; }
+  .pcell.sel { background: var(--gold); color: #3a2c00; }
+  .pcell.path { background: rgba(124,108,240,.32); }
+  .pcell.answer { background: var(--mint); color: #06281c; box-shadow: 0 0 0 2px var(--mint); }
   .pcell.corner { background: transparent; color: var(--muted); }
+  .pif-answer { text-align: center; font-size: 22px; font-weight: 800; margin-bottom: 14px; color: var(--mint); min-height: 28px; font-variant-numeric: tabular-nums; }
+  .pif-answer.hint { color: var(--muted); font-size: 15px; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -513,6 +518,7 @@
   const TABS = { mul: '✖️ Умножения', div: '➗ Деления', pif: '⬜ Пифагора' };
   let tableMode = 'mul';  // какая вкладка открыта
   let tableNum = 2;       // какое число смотрим (для умножения/деления)
+  let pifPicks = [];      // выбранные числа по краям Пифагора (до 2 штук)
 
   const tableTabs = document.getElementById('tableTabs');
   Object.keys(TABS).forEach(mode => {
@@ -526,6 +532,7 @@
     const b = e.target.closest('.tab');
     if (!b) return;
     tableMode = b.dataset.mode;
+    pifPicks = [];   // при смене вкладки сбрасываем выбор
     renderTable();
   });
 
@@ -546,14 +553,50 @@
 
   const tableBody = document.getElementById('tableBody');
 
+  // Клик по числу на краю Пифагора: выбираем до двух чисел
+  tableBody.addEventListener('click', (e) => {
+    const head = e.target.closest('.pcell.head');
+    if (!head || tableMode !== 'pif') return;
+    const pick = { kind: head.dataset.kind, n: parseInt(head.dataset.n, 10) };
+    if (pifPicks.length >= 2) pifPicks = [];   // уже выбрано два — начинаем заново
+    const idx = pifPicks.findIndex(p => p.kind === pick.kind && p.n === pick.n);
+    if (idx >= 0) pifPicks.splice(idx, 1);     // повторный клик — снять выбор
+    else pifPicks.push(pick);
+    renderTable();
+  });
+
   function pifGrid() {
-    let cells = '<div class="pcell corner">×</div>';
-    for (let j = 1; j <= 10; j++) cells += `<div class="pcell head">${j}</div>`;
-    for (let i = 1; i <= 10; i++) {
-      cells += `<div class="pcell head">${i}</div>`;
-      for (let j = 1; j <= 10; j++) cells += `<div class="pcell">${i * j}</div>`;
+    const nums = pifPicks.map(p => p.n);
+    const a = nums[0], b = nums[1];
+    const ready = (a != null && b != null);
+
+    // строка и столбец, которые ведут к ответу
+    let hi = null, hj = null;
+    if (ready) {
+      const left = pifPicks.find(p => p.kind === 'left');
+      const top = pifPicks.find(p => p.kind === 'top');
+      if (left && top) { hi = left.n; hj = top.n; } else { hi = a; hj = b; }
     }
-    return `<div class="pwrap"><div class="pgrid">${cells}</div></div>`;
+    const isSel = (kind, n) => pifPicks.some(p => p.kind === kind && p.n === n);
+
+    const banner = ready
+      ? `<div class="pif-answer">${a} × ${b} = ${a * b}</div>`
+      : `<div class="pif-answer hint">Нажми на два числа по краям</div>`;
+
+    let cells = '<div class="pcell corner">×</div>';
+    for (let j = 1; j <= 10; j++) {
+      cells += `<div class="pcell head${isSel('top', j) ? ' sel' : ''}" data-kind="top" data-n="${j}">${j}</div>`;
+    }
+    for (let i = 1; i <= 10; i++) {
+      cells += `<div class="pcell head${isSel('left', i) ? ' sel' : ''}" data-kind="left" data-n="${i}">${i}</div>`;
+      for (let j = 1; j <= 10; j++) {
+        let cls = 'pcell';
+        if (ready && i === hi && j === hj) cls += ' answer';
+        else if (ready && (i === hi || j === hj)) cls += ' path';
+        cells += `<div class="${cls}" data-i="${i}" data-j="${j}">${i * j}</div>`;
+      }
+    }
+    return `${banner}<div class="pwrap"><div class="pgrid">${cells}</div></div>`;
   }
 
   function renderTable() {
