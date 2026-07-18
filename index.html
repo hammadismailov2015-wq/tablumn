@@ -7,6 +7,8 @@
 <style>
   :root {
     --bg: #14142b;
+    --glow1: #2a2a63;
+    --glow2: #3a2a63;
     --bg2: #1c1c3f;
     --card: #232349;
     --ink: #f0f0ff;
@@ -23,9 +25,10 @@
   body {
     font-family: ui-rounded, "Segoe UI Rounded", system-ui, -apple-system, sans-serif;
     background:
-      radial-gradient(1200px 600px at 15% -10%, #2a2a63 0%, transparent 55%),
-      radial-gradient(1000px 500px at 110% 110%, #3a2a63 0%, transparent 50%),
+      radial-gradient(1200px 600px at 15% -10%, var(--glow1) 0%, transparent 55%),
+      radial-gradient(1000px 500px at 110% 110%, var(--glow2) 0%, transparent 50%),
       var(--bg);
+    transition: background .4s ease;
     color: var(--ink);
     min-height: 100vh;
     display: flex;
@@ -94,6 +97,15 @@
   }
   .switch.on { background: linear-gradient(180deg, var(--coral), #e04b4b); }
   .switch.on::after { left: 25px; }
+
+  /* Выбор фона */
+  .themes { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
+  .swatch {
+    width: 34px; height: 34px; border-radius: 50%; border: 2px solid transparent;
+    cursor: pointer; padding: 0; transition: transform .12s;
+  }
+  .swatch:hover { transform: scale(1.12); }
+  .swatch.active { border-color: #fff; box-shadow: 0 0 0 2px rgba(255,255,255,.25); }
 
   .record-line { text-align: center; color: var(--gold); font-weight: 700; font-size: 15px; margin: 6px 0 16px; }
   .start-btn {
@@ -216,6 +228,8 @@
       </span>
       <button class="switch" id="dangerToggle" role="switch" aria-checked="false" aria-label="Опасный режим"></button>
     </div>
+    <div class="label">🎨 Фон</div>
+    <div class="themes" id="themes"></div>
     <div class="record-line" id="recordLine">🏆 Рекорд: 0 очков</div>
     <button class="start-btn" id="startBtn">Начать тренировку →</button>
     <button class="secondary-btn" id="openTables">📖 Посмотреть таблицы</button>
@@ -350,6 +364,45 @@
     dangerToggle.classList.toggle('on', danger);
     dangerToggle.setAttribute('aria-checked', danger);
   });
+
+  // ---------- Выбор фона (тема) ----------
+  const THEMES = {
+    indigo: { bg: '#14142b', g1: '#2a2a63', g2: '#3a2a63', dot: '#7c6cf0' },
+    ocean:  { bg: '#0c1f2b', g1: '#0f3a4d', g2: '#12324a', dot: '#22b8cf' },
+    forest: { bg: '#0f1f14', g1: '#1c4029', g2: '#1a3320', dot: '#34d399' },
+    sunset: { bg: '#241021', g1: '#5a2140', g2: '#5a3a1f', dot: '#ff8a5c' },
+    grape:  { bg: '#1a1030', g1: '#3a2163', g2: '#502a63', dot: '#a06bff' },
+    rose:   { bg: '#2a1020', g1: '#5a1f40', g2: '#4a1f3a', dot: '#ff6b9d' },
+  };
+  const THEME_KEY = 'trainer-theme';
+
+  const themesEl = document.getElementById('themes');
+  Object.keys(THEMES).forEach(key => {
+    const t = THEMES[key];
+    const b = document.createElement('button');
+    b.className = 'swatch';
+    b.dataset.theme = key;
+    b.style.background = `linear-gradient(135deg, ${t.bg} 30%, ${t.dot})`;
+    b.setAttribute('aria-label', 'Фон ' + key);
+    themesEl.appendChild(b);
+  });
+
+  function applyTheme(key) {
+    const t = THEMES[key] || THEMES.indigo;
+    const root = document.documentElement.style;
+    root.setProperty('--bg', t.bg);
+    root.setProperty('--glow1', t.g1);
+    root.setProperty('--glow2', t.g2);
+    localStorage.setItem(THEME_KEY, key);
+    [...themesEl.children].forEach(s => s.classList.toggle('active', s.dataset.theme === key));
+  }
+
+  themesEl.addEventListener('click', (e) => {
+    const b = e.target.closest('.swatch');
+    if (b) applyTheme(b.dataset.theme);
+  });
+
+  applyTheme(localStorage.getItem(THEME_KEY) || 'indigo'); // применяем сохранённый фон при загрузке
 
   // ---------- Рекорд (свой для каждого действия) ----------
   function recordKey() { return 'trainer-record-' + op; }
