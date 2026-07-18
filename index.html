@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Тренажёр таблицы умножения</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --accent: #6366f1;
+    --accent-hover: #818cf8;
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+    --good: #22c55e;
+    --bad: #ef4444;
+    --border: #334155;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: linear-gradient(160deg, #0f172a, #1e1b4b);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .app {
+    width: 100%;
+    max-width: 460px;
+    background: var(--card);
+    border-radius: 20px;
+    padding: 28px 24px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.4);
+    border: 1px solid var(--border);
+  }
+  h1 {
+    font-size: 22px;
+    text-align: center;
+    margin-bottom: 6px;
+  }
+  .subtitle {
+    text-align: center;
+    color: var(--muted);
+    font-size: 14px;
+    margin-bottom: 22px;
+  }
+  .section-label {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 10px;
+    text-align: center;
+  }
+  .picker {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .pick-btn {
+    padding: 12px 0;
+    border: 1px solid var(--border);
+    background: #0f172a;
+    color: var(--text);
+    border-radius: 12px;
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: .15s;
+  }
+  .pick-btn:hover { border-color: var(--accent); }
+  .pick-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .pick-btn.all { grid-column: span 5; }
+  .start-btn {
+    width: 100%;
+    padding: 14px;
+    margin-top: 6px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: .15s;
+  }
+  .start-btn:hover { background: var(--accent-hover); }
+
+  /* Тренировка */
+  .stats {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 18px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .stats b { color: var(--text); }
+  .question {
+    text-align: center;
+    font-size: 44px;
+    font-weight: 800;
+    margin: 14px 0 20px;
+    letter-spacing: 1px;
+  }
+  .answer-input {
+    width: 100%;
+    padding: 16px;
+    font-size: 26px;
+    text-align: center;
+    border-radius: 12px;
+    border: 2px solid var(--border);
+    background: #0f172a;
+    color: var(--text);
+    outline: none;
+    transition: .15s;
+    -moz-appearance: textfield;
+  }
+  .answer-input::-webkit-outer-spin-button,
+  .answer-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .answer-input:focus { border-color: var(--accent); }
+  .answer-input.shake { animation: shake .4s; border-color: var(--bad); }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20%,60% { transform: translateX(-8px); }
+    40%,80% { transform: translateX(8px); }
+  }
+  .feedback {
+    text-align: center;
+    min-height: 24px;
+    margin: 14px 0;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .feedback.good { color: var(--good); }
+  .feedback.bad { color: var(--bad); }
+  .row-btns { display: flex; gap: 10px; }
+  .btn {
+    flex: 1;
+    padding: 13px;
+    border-radius: 12px;
+    border: none;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: .15s;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-ghost { background: #0f172a; color: var(--text); border: 1px solid var(--border); }
+  .btn-ghost:hover { border-color: var(--accent); }
+  .hidden { display: none; }
+  .progress-bar {
+    height: 8px;
+    background: #0f172a;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 18px;
+  }
+  .progress-fill {
+    height: 100%;
+    width: 0;
+    background: var(--accent);
+    transition: width .3s;
+  }
+  /* Результат */
+  .result { text-align: center; }
+  .result .score { font-size: 46px; font-weight: 800; margin: 10px 0; }
+  .result .emoji { font-size: 54px; margin-bottom: 8px; }
+  .result p { color: var(--muted); margin-bottom: 20px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Экран настройки -->
+  <div id="setup">
+    <h1>✖️ Тренажёр таблицы умножения</h1>
+    <p class="subtitle">Выбери, на что умножать</p>
+    <div class="section-label">Множитель</div>
+    <div class="picker" id="picker"></div>
+    <button class="start-btn" id="startBtn">Начать тренировку →</button>
+  </div>
+
+  <!-- Экран тренировки -->
+  <div id="trainer" class="hidden">
+    <div class="stats">
+      <span>Вопрос <b id="qNum">1</b>/<b id="qTotal">10</b></span>
+      <span>Верно: <b id="correctCount">0</b></span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="question" id="question">2 × 3</div>
+    <input type="number" class="answer-input" id="answerInput" placeholder="?" inputmode="numeric" autocomplete="off">
+    <div class="feedback" id="feedback"></div>
+    <div class="row-btns">
+      <button class="btn btn-ghost" id="quitBtn">Выйти</button>
+      <button class="btn btn-primary" id="checkBtn">Проверить</button>
+    </div>
+  </div>
+
+  <!-- Экран результата -->
+  <div id="result" class="hidden">
+    <div class="result">
+      <div class="emoji" id="resultEmoji">🎉</div>
+      <div class="score" id="resultScore">10/10</div>
+      <p id="resultText">Отлично!</p>
+      <div class="row-btns">
+        <button class="btn btn-ghost" id="menuBtn">В меню</button>
+        <button class="btn btn-primary" id="againBtn">Ещё раз</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const TOTAL = 10;          // вопросов в тренировке
+  const MAX_FACTOR = 10;     // умножаем от 1 до 10
+  let selected = null;       // выбранный множитель или 'all'
+  let questions = [];
+  let current = 0;
+  let correct = 0;
+
+  // --- Построение кнопок выбора ---
+  const picker = document.getElementById('picker');
+  for (let i = 1; i <= 10; i++) {
+    const b = document.createElement('button');
+    b.className = 'pick-btn';
+    b.textContent = i;
+    b.dataset.val = i;
+    picker.appendChild(b);
+  }
+  const allBtn = document.createElement('button');
+  allBtn.className = 'pick-btn all';
+  allBtn.textContent = 'Все подряд 🎲';
+  allBtn.dataset.val = 'all';
+  picker.appendChild(allBtn);
+
+  picker.addEventListener('click', (e) => {
+    const btn = e.target.closest('.pick-btn');
+    if (!btn) return;
+    document.querySelectorAll('.pick-btn').forEach(x => x.classList.remove('active'));
+    btn.classList.add('active');
+    selected = btn.dataset.val;
+  });
+
+  // --- Экраны ---
+  const setupEl = document.getElementById('setup');
+  const trainerEl = document.getElementById('trainer');
+  const resultEl = document.getElementById('result');
+
+  function show(el) {
+    [setupEl, trainerEl, resultEl].forEach(x => x.classList.add('hidden'));
+    el.classList.remove('hidden');
+  }
+
+  function rand(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  function buildQuestions() {
+    questions = [];
+    for (let i = 0; i < TOTAL; i++) {
+      const a = selected === 'all' ? rand(1, MAX_FACTOR) : parseInt(selected, 10);
+      const b = rand(1, MAX_FACTOR);
+      questions.push({ a, b, answer: a * b });
+    }
+  }
+
+  // --- Тренировка ---
+  const qNum = document.getElementById('qNum');
+  const qTotal = document.getElementById('qTotal');
+  const correctCount = document.getElementById('correctCount');
+  const questionEl = document.getElementById('question');
+  const answerInput = document.getElementById('answerInput');
+  const feedback = document.getElementById('feedback');
+  const progressFill = document.getElementById('progressFill');
+
+  function startTraining() {
+    if (!selected) { alert('Сначала выбери множитель!'); return; }
+    buildQuestions();
+    current = 0;
+    correct = 0;
+    qTotal.textContent = TOTAL;
+    correctCount.textContent = 0;
+    show(trainerEl);
+    renderQuestion();
+  }
+
+  function renderQuestion() {
+    const q = questions[current];
+    qNum.textContent = current + 1;
+    questionEl.textContent = `${q.a} × ${q.b}`;
+    answerInput.value = '';
+    answerInput.disabled = false;
+    feedback.textContent = '';
+    feedback.className = 'feedback';
+    progressFill.style.width = (current / TOTAL * 100) + '%';
+    answerInput.focus();
+  }
+
+  function checkAnswer() {
+    const q = questions[current];
+    const val = answerInput.value.trim();
+    if (val === '') { answerInput.focus(); return; }
+    const user = parseInt(val, 10);
+
+    if (user === q.answer) {
+      correct++;
+      correctCount.textContent = correct;
+      feedback.textContent = '✅ Верно!';
+      feedback.className = 'feedback good';
+    } else {
+      feedback.textContent = `❌ Неверно. ${q.a} × ${q.b} = ${q.answer}`;
+      feedback.className = 'feedback bad';
+      answerInput.classList.add('shake');
+      setTimeout(() => answerInput.classList.remove('shake'), 400);
+    }
+    answerInput.disabled = true;
+    progressFill.style.width = ((current + 1) / TOTAL * 100) + '%';
+
+    setTimeout(() => {
+      current++;
+      if (current < TOTAL) renderQuestion();
+      else showResult();
+    }, 900);
+  }
+
+  // --- Результат ---
+  function showResult() {
+    show(resultEl);
+    document.getElementById('resultScore').textContent = `${correct}/${TOTAL}`;
+    const pct = correct / TOTAL;
+    let emoji, text;
+    if (pct === 1)      { emoji = '🏆'; text = 'Идеально! Ты знаешь таблицу на отлично!'; }
+    else if (pct >= 0.8){ emoji = '🎉'; text = 'Отличный результат!'; }
+    else if (pct >= 0.5){ emoji = '👍'; text = 'Неплохо, но можно лучше. Потренируйся ещё!'; }
+    else                { emoji = '💪'; text = 'Не сдавайся — попробуй ещё раз!'; }
+    document.getElementById('resultEmoji').textContent = emoji;
+    document.getElementById('resultText').textContent = text;
+  }
+
+  // --- События ---
+  document.getElementById('startBtn').addEventListener('click', startTraining);
+  document.getElementById('checkBtn').addEventListener('click', checkAnswer);
+  document.getElementById('quitBtn').addEventListener('click', () => show(setupEl));
+  document.getElementById('menuBtn').addEventListener('click', () => show(setupEl));
+  document.getElementById('againBtn').addEventListener('click', startTraining);
+
+  answerInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !answerInput.disabled) checkAnswer();
+  });
+</script>
+</body>
+</html>
