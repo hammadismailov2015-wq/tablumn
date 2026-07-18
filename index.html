@@ -152,6 +152,43 @@
     .answer-input.shake, .flash-wrong, .flash-good { animation: none; }
     * { transition: none !important; }
   }
+
+  /* Вторичная кнопка (Посмотреть таблицы) */
+  .secondary-btn {
+    width: 100%; padding: 14px; margin-top: 10px; background: rgba(255,255,255,.04);
+    color: var(--ink); border: 1px solid var(--line); border-radius: 16px; font: inherit;
+    font-size: 15px; font-weight: 700; cursor: pointer; transition: border-color .15s, transform .12s;
+  }
+  .secondary-btn:hover { border-color: var(--violet); transform: translateY(-2px); }
+
+  /* Раздел «Таблицы» */
+  .tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-bottom: 14px; }
+  .tab {
+    display: flex; align-items: center; justify-content: center; gap: 6px; padding: 12px 6px;
+    border: 1px solid var(--line); background: rgba(255,255,255,.03); color: var(--ink);
+    border-radius: 14px; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+    transition: transform .12s, background .15s, border-color .15s;
+  }
+  .tab:hover { border-color: var(--violet); transform: translateY(-2px); }
+  .tab.active { background: linear-gradient(180deg, var(--violet-2), var(--violet)); border-color: transparent; color: #fff; }
+  .picker.mini { margin-bottom: 6px; }
+  .pick-btn.mini { padding: 10px 0; font-size: 16px; }
+  .tlist { display: flex; flex-direction: column; gap: 8px; margin: 14px 0 18px; }
+  .trow {
+    display: flex; justify-content: space-between; align-items: center;
+    background: rgba(255,255,255,.03); border: 1px solid var(--line); border-radius: 12px;
+    padding: 12px 16px; font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums;
+  }
+  .trow .res { color: var(--mint); }
+  .pwrap { overflow-x: auto; margin: 14px 0 18px; }
+  .pgrid { display: grid; grid-template-columns: repeat(11, 1fr); gap: 3px; min-width: 380px; }
+  .pcell {
+    aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+    border-radius: 6px; font-size: 13px; font-weight: 700; background: rgba(255,255,255,.03);
+    font-variant-numeric: tabular-nums;
+  }
+  .pcell.head { background: var(--violet); color: #fff; }
+  .pcell.corner { background: transparent; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -176,6 +213,7 @@
     </div>
     <div class="record-line" id="recordLine">🏆 Рекорд: 0 очков</div>
     <button class="start-btn" id="startBtn">Начать тренировку →</button>
+    <button class="secondary-btn" id="openTables">📖 Посмотреть таблицы</button>
   </div>
 
   <!-- ЭКРАН ТРЕНИРОВКИ -->
@@ -208,6 +246,16 @@
         <button class="btn btn-primary" id="againBtn">Ещё раз</button>
       </div>
     </div>
+  </div>
+
+  <!-- ЭКРАН ТАБЛИЦ (просмотр) -->
+  <div id="tables" class="hidden">
+    <h1>📖 Таблицы</h1>
+    <p class="subtitle">Просто посмотреть — как шпаргалка</p>
+    <div class="tabs" id="tableTabs"></div>
+    <div class="picker mini" id="tablePick"></div>
+    <div id="tableBody"></div>
+    <button class="start-btn" id="tablesBack">← В меню</button>
   </div>
 
 </div>
@@ -311,7 +359,8 @@
   const setupEl = document.getElementById('setup');
   const trainerEl = document.getElementById('trainer');
   const resultEl = document.getElementById('result');
-  function show(el) { [setupEl, trainerEl, resultEl].forEach(x => x.classList.add('hidden')); el.classList.remove('hidden'); }
+  const tablesEl = document.getElementById('tables');
+  function show(el) { [setupEl, trainerEl, resultEl, tablesEl].forEach(x => x.classList.add('hidden')); el.classList.remove('hidden'); }
   function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 
   function buildQuestions() {
@@ -460,7 +509,75 @@
     showRecord();
   }
 
+  // ---------- Раздел «Таблицы» (просмотр) ----------
+  const TABS = { mul: '✖️ Умножения', div: '➗ Деления', pif: '⬜ Пифагора' };
+  let tableMode = 'mul';  // какая вкладка открыта
+  let tableNum = 2;       // какое число смотрим (для умножения/деления)
+
+  const tableTabs = document.getElementById('tableTabs');
+  Object.keys(TABS).forEach(mode => {
+    const b = document.createElement('button');
+    b.className = 'tab';
+    b.dataset.mode = mode;
+    b.textContent = TABS[mode];
+    tableTabs.appendChild(b);
+  });
+  tableTabs.addEventListener('click', (e) => {
+    const b = e.target.closest('.tab');
+    if (!b) return;
+    tableMode = b.dataset.mode;
+    renderTable();
+  });
+
+  const tablePick = document.getElementById('tablePick');
+  for (let i = 1; i <= 10; i++) {
+    const b = document.createElement('button');
+    b.className = 'pick-btn mini';
+    b.textContent = i;
+    b.dataset.val = i;
+    tablePick.appendChild(b);
+  }
+  tablePick.addEventListener('click', (e) => {
+    const b = e.target.closest('.pick-btn');
+    if (!b) return;
+    tableNum = parseInt(b.dataset.val, 10);
+    renderTable();
+  });
+
+  const tableBody = document.getElementById('tableBody');
+
+  function pifGrid() {
+    let cells = '<div class="pcell corner">×</div>';
+    for (let j = 1; j <= 10; j++) cells += `<div class="pcell head">${j}</div>`;
+    for (let i = 1; i <= 10; i++) {
+      cells += `<div class="pcell head">${i}</div>`;
+      for (let j = 1; j <= 10; j++) cells += `<div class="pcell">${i * j}</div>`;
+    }
+    return `<div class="pwrap"><div class="pgrid">${cells}</div></div>`;
+  }
+
+  function renderTable() {
+    // подсветка активной вкладки
+    [...tableTabs.children].forEach(t => t.classList.toggle('active', t.dataset.mode === tableMode));
+    // выбор числа нужен только для умножения и деления
+    tablePick.style.display = (tableMode === 'pif') ? 'none' : '';
+    [...tablePick.children].forEach(b => b.classList.toggle('active', parseInt(b.dataset.val, 10) === tableNum));
+
+    if (tableMode === 'pif') { tableBody.innerHTML = pifGrid(); return; }
+
+    let rows = '';
+    for (let k = 1; k <= 10; k++) {
+      let left, res;
+      if (tableMode === 'mul') { left = `${tableNum} × ${k}`; res = tableNum * k; }
+      else                     { left = `${tableNum * k} ÷ ${tableNum}`; res = k; }
+      rows += `<div class="trow"><span>${left}</span><span class="res">= ${res}</span></div>`;
+    }
+    tableBody.innerHTML = `<div class="tlist">${rows}</div>`;
+  }
+
   // ---------- События ----------
+  document.getElementById('openTables').addEventListener('click', () => { renderTable(); show(tablesEl); });
+  document.getElementById('tablesBack').addEventListener('click', () => show(setupEl));
   document.getElementById('startBtn').addEventListener('click', startTraining);
   checkBtn.addEventListener('click', checkAnswer);
   nextBtn.addEventListener('click', goNext);
