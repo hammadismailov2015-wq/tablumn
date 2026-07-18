@@ -131,6 +131,8 @@
   .blank { display: inline-block; min-width: 40px; padding: 0 8px; border-bottom: 4px solid var(--violet-2); border-radius: 2px; color: var(--violet-2); }
   .q-sign { color: var(--violet-2); margin: 0 4px; }
   .q-eq { color: var(--muted); margin: 0 6px; }
+  .question.task { font-size: 21px; font-weight: 700; line-height: 1.4; margin: 4px 0 16px; text-wrap: pretty; }
+  .op-btn.wide { grid-column: 1 / -1; }
   .answer-input {
     width: 100%; padding: 18px; font: inherit; font-size: 30px; font-weight: 700; text-align: center;
     border-radius: 16px; border: 2px solid var(--line); background: rgba(0,0,0,.25);
@@ -236,28 +238,28 @@
     <p class="subtitle">Выбери действие и число</p>
     <div class="label">Действие</div>
     <div class="ops" id="ops"></div>
-    <div class="label">Диапазон чисел</div>
-    <div class="counts" id="ranges"></div>
-    <div id="numberSection">
+    <div class="label arith-only">Диапазон чисел</div>
+    <div class="counts arith-only" id="ranges"></div>
+    <div id="numberSection" class="arith-only">
       <div class="label">Число (можно несколько)</div>
       <div class="picker" id="picker"></div>
     </div>
-    <div class="rng-hint hidden" id="rngHint">🎲 Числа будут случайными</div>
+    <div class="rng-hint hidden arith-only" id="rngHint">🎲 Числа будут случайными</div>
     <div class="label">Сколько вопросов</div>
     <div class="counts" id="counts"></div>
-    <div class="toggle-row">
+    <div class="toggle-row arith-only">
       <span class="t-label">🧩 Умножение как сложение
         <span class="t-sub">Показывать 2 × 5 как 5 + 5 (для новичков)</span>
       </span>
       <button class="switch" id="beginnerToggle" role="switch" aria-checked="false" aria-label="Умножение как сложение"></button>
     </div>
-    <div class="toggle-row">
+    <div class="toggle-row arith-only">
       <span class="t-label">📝 Записать в столбик
         <span class="t-sub">Пример как на бумаге, стопкой</span>
       </span>
       <button class="switch" id="columnToggle" role="switch" aria-checked="false" aria-label="Записать в столбик"></button>
     </div>
-    <div class="toggle-row">
+    <div class="toggle-row arith-only">
       <span class="t-label">🔍 Найди пропущенное
         <span class="t-sub">Спрятать одно число: 2 × ? = 10</span>
       </span>
@@ -335,6 +337,7 @@
     div: { emoji: '➗', name: 'Деление',    make: (n, k) => ({ a: n * k, b: n, answer: k,     text: `${n * k} ÷ ${n}` }) },
     add: { emoji: '➕', name: 'Сложение',   make: (n, k) => ({ a: n,     b: k, answer: n + k, text: `${n} + ${k}` }) },
     sub: { emoji: '➖', name: 'Вычитание',  make: (n, k) => ({ a: n + k, b: n, answer: k,     text: `${n + k} − ${n}` }) },
+    task: { emoji: '📖', name: 'Задачи',    make: () => ({}) },  // строит makeTask(), не через n/k
   };
   const SIGN = { mul: '×', div: '÷', add: '+', sub: '−' };
 
@@ -357,7 +360,7 @@
   const opsEl = document.getElementById('ops');
   Object.keys(OPS).forEach((key, idx) => {
     const b = document.createElement('button');
-    b.className = 'op-btn' + (idx === 0 ? ' active' : '');
+    b.className = 'op-btn' + (idx === 0 ? ' active' : '') + (key === 'task' ? ' wide' : '');
     b.dataset.op = key;
     b.innerHTML = `<span class="op-emoji">${OPS[key].emoji}</span> ${OPS[key].name}`;
     opsEl.appendChild(b);
@@ -368,8 +371,20 @@
     document.querySelectorAll('.op-btn').forEach(x => x.classList.remove('active'));
     b.classList.add('active');
     op = b.dataset.op;
-    showRecord(); // у каждого действия свой рекорд
+    showRecord();     // у каждого действия свой рекорд
+    refreshOpUI();    // задачи не используют часть настроек — прячем их
   });
+
+  // Прячем «арифметические» настройки, если выбран режим задач
+  function refreshOpUI() {
+    const isTask = (op === 'task');
+    document.querySelectorAll('.arith-only').forEach(el => el.classList.toggle('hidden', isTask));
+    if (!isTask) {                       // вернулись к обычным действиям — восстановим по диапазону
+      const small = (range === 10);
+      numberSection.classList.toggle('hidden', !small);
+      rngHint.classList.toggle('hidden', small);
+    }
+  }
 
   // ---------- Кнопки чисел ----------
   const picker = document.getElementById('picker');
@@ -557,8 +572,63 @@
   function show(el) { [setupEl, trainerEl, resultEl, tablesEl].forEach(x => x.classList.add('hidden')); el.classList.remove('hidden'); }
   function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 
-  // Один пример. Для «до 10» — по выбранным числам; для больших — случайные.
+  // ---------- Текстовые задачи ----------
+  const NAMES = [
+    { nom: 'Саша', gen: 'Саши' }, { nom: 'Миша', gen: 'Миши' }, { nom: 'Дима', gen: 'Димы' },
+    { nom: 'Петя', gen: 'Пети' }, { nom: 'Коля', gen: 'Коли' }, { nom: 'Ваня', gen: 'Вани' },
+  ];
+  const ITEMS = [
+    { one: 'яблоко',   few: 'яблока',   many: 'яблок' },
+    { one: 'конфета',  few: 'конфеты',  many: 'конфет' },
+    { one: 'тетрадь',  few: 'тетради',  many: 'тетрадей' },
+    { one: 'булочка',  few: 'булочки',  many: 'булочек' },
+    { one: 'карандаш', few: 'карандаша', many: 'карандашей' },
+  ];
+  const pick = arr => arr[rand(0, arr.length - 1)];
+
+  // Правильная форма слова по числу: 1 яблоко, 2 яблока, 5 яблок
+  function plural(n, one, few, many) {
+    const d10 = n % 10, d100 = n % 100;
+    if (d10 === 1 && d100 !== 11) return one;
+    if (d10 >= 2 && d10 <= 4 && (d100 < 10 || d100 >= 20)) return few;
+    return many;
+  }
+  const wItems = (n, it) => `${n} ${plural(n, it.one, it.few, it.many)}`;
+  const rub = n => `${n} рублей`;   // деньги всегда кратны 10 → всегда «рублей»
+
+  // Каждый шаблон возвращает {text, answer}
+  const TASKS = [
+    () => {   // купил N по цене, отдал больше — сколько сдачи (× затем −)
+      const n = rand(2, 4), price = rand(2, 9) * 10, it = pick(ITEMS);
+      const total = n * price, paid = total + rand(1, 4) * 10;
+      return { text: `${pick(NAMES).nom} купил ${wItems(n, it)} по ${rub(price)} и отдал ${rub(paid)}. Сколько сдачи ему должны дать?`, answer: paid - total };
+    },
+    () => {   // N по цене + ещё покупка — сколько всего (× затем +)
+      const n = rand(2, 4), price = rand(2, 9) * 10, extra = rand(2, 9) * 10, it = pick(ITEMS);
+      return { text: `${pick(NAMES).nom} купил ${wItems(n, it)} по ${rub(price)} и ещё одну вещь за ${rub(extra)}. Сколько всего он заплатил?`, answer: n * price + extra };
+    },
+    () => {   // разложили поровну — сколько в каждой (÷)
+      const per = rand(2, 6), k = rand(2, 4), it = pick(ITEMS), total = per * k;
+      return { text: `${wItems(total, it)} разложили поровну на ${k} тарелки. Сколько ${it.many} на каждой?`, answer: per };
+    },
+    () => {   // было, часть забрали — сколько осталось (−)
+      const total = rand(12, 40), gone = rand(3, total - 2), it = pick(ITEMS);
+      return { text: `На столе было ${wItems(total, it)}. Забрали ${wItems(gone, it)}. Сколько ${it.many} осталось?`, answer: total - gone };
+    },
+    () => {   // у одного столько, у другого на b больше — сколько вместе (+)
+      const a = rand(3, 10), b = rand(2, 8), it = pick(ITEMS);
+      return { text: `У ${pick(NAMES).gen} ${wItems(a, it)}, а у друга на ${b} больше. Сколько ${it.many} у них вместе?`, answer: a + (a + b) };
+    },
+  ];
+
+  function makeTask() {
+    const t = pick(TASKS)();
+    return { a: 0, b: 0, answer: t.answer, text: t.text };
+  }
+
+  // Один пример. Задачи — отдельно; «до 10» — по выбранным числам; больше — случайные.
   function makeProblem() {
+    if (op === 'task') return makeTask();
     if (range === 10) {
       const n = selected[rand(0, selected.length - 1)];
       const k = rand(1, MAX_FACTOR);
@@ -588,7 +658,7 @@
 
   // Что игрок должен ввести: в обычном режиме — результат, в «найди пропущенное» — спрятанное число
   function expected(q) {
-    if (!missing) return q.answer;
+    if (!missing || op === 'task') return q.answer;
     return q.hide === 0 ? q.a : q.b;
   }
 
@@ -643,7 +713,7 @@
 
   function startTraining() {
     selected = [...document.querySelectorAll('.pick-num.active')].map(b => parseInt(b.dataset.val, 10));
-    if (range === 10 && selected.length === 0) { alert('Выбери хотя бы одно число!'); return; }
+    if (op !== 'task' && range === 10 && selected.length === 0) { alert('Выбери хотя бы одно число!'); return; }
     buildQuestions();
     current = 0; score = 0;
     qTotal.textContent = total;
@@ -655,7 +725,9 @@
   function renderQuestion() {
     const q = questions[current];
     qNum.textContent = current + 1;
-    if (missing) questionEl.innerHTML = missingHTML(q);
+    questionEl.classList.toggle('task', op === 'task');
+    if (op === 'task') questionEl.textContent = q.text;
+    else if (missing) questionEl.innerHTML = missingHTML(q);
     else if (column) questionEl.innerHTML = columnHTML(q);
     else questionEl.textContent = q.text;
     showHint(q);
