@@ -248,8 +248,8 @@
     </div>
     <div class="label task-only hidden">Тип задач</div>
     <div class="ops task-only hidden" id="taskOps"></div>
-    <div class="label arith-only">Диапазон чисел</div>
-    <div class="counts arith-only" id="ranges"></div>
+    <div class="label">Диапазон чисел</div>
+    <div class="counts" id="ranges"></div>
     <div id="numberSection" class="arith-only">
       <div class="label">Число (можно несколько)</div>
       <div class="picker" id="picker"></div>
@@ -668,31 +668,41 @@
   }
   const wItems = (n, it) => `${n} ${plural(n, it.one, it.few, it.many)}`;
   const rub = n => `${n} рублей`;   // деньги всегда кратны 10 → всегда «рублей»
+  // Числа в задачах масштабируются под выбранный диапазон
+  function qty() {
+    if (range === 10) return rand(2, 9);
+    if (range === 100) return rand(10, 40);
+    return rand(50, 300);
+  }
+  function money() {
+    const mx = range === 10 ? 9 : range === 100 ? 30 : 99;
+    return rand(2, mx) * 10;
+  }
 
   // Задачи по действиям. Каждый шаблон возвращает {text, answer}.
   const TASKS = {
     mul: [
-      () => { const n = rand(2, 9), k = rand(2, 9), it = pick(ITEMS);
+      () => { const n = rand(2, 9), k = qty(), it = pick(ITEMS);
         return { text: `В ${n} коробках лежит по ${wItems(k, it)}. Сколько ${it.many} всего?`, answer: n * k }; },
-      () => { const n = rand(2, 9), price = rand(2, 9) * 10, it = pick(ITEMS);
+      () => { const n = rand(2, 9), price = money(), it = pick(ITEMS);
         return { text: `${pick(NAMES).nom} купил ${wItems(n, it)} по ${rub(price)}. Сколько всего он заплатил?`, answer: n * price }; },
     ],
     div: [
-      () => { const per = rand(2, 9), k = rand(2, 4), it = pick(ITEMS), total = per * k;
+      () => { const per = qty(), k = rand(2, 4), it = pick(ITEMS), total = per * k;
         return { text: `${wItems(total, it)} разложили поровну на ${k} тарелки. Сколько ${it.many} на каждой?`, answer: per }; },
-      () => { const per = rand(2, 9) * 10, k = rand(2, 4), total = per * k;
+      () => { const per = money(), k = rand(2, 4), total = per * k;
         return { text: `${rub(total)} раздали поровну ${k} детям. Сколько рублей получил каждый?`, answer: per }; },
     ],
     add: [
-      () => { const a = rand(2, 15), b = rand(2, 15), it = pick(ITEMS);
+      () => { const a = qty(), b = qty(), it = pick(ITEMS);
         return { text: `У ${pick(NAMES).gen} ${wItems(a, it)}, а у друга ${b}. Сколько ${it.many} у них вместе?`, answer: a + b }; },
-      () => { const a = rand(5, 20), b = rand(2, 15), it = pick(ITEMS);
+      () => { const a = qty(), b = qty(), it = pick(ITEMS);
         return { text: `На полке было ${wItems(a, it)}, поставили ещё ${b}. Сколько ${it.many} стало?`, answer: a + b }; },
     ],
     sub: [
-      () => { const a = rand(6, 20), b = rand(2, a - 1), it = pick(ITEMS);
+      () => { const b = qty(), a = b + qty(), it = pick(ITEMS);
         return { text: `Было ${wItems(a, it)}. Забрали ${wItems(b, it)}. Сколько ${it.many} осталось?`, answer: a - b }; },
-      () => { const cost = rand(2, 8) * 10, paid = cost + rand(1, 4) * 10;
+      () => { const cost = money(), paid = cost + money();
         return { text: `${pick(NAMES).nom} отдал ${rub(paid)} за покупку в ${rub(cost)}. Сколько сдачи он получит?`, answer: paid - cost }; },
     ],
   };
