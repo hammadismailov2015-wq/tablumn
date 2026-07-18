@@ -132,7 +132,9 @@
   .q-sign { color: var(--violet-2); margin: 0 4px; }
   .q-eq { color: var(--muted); margin: 0 6px; }
   .question.task { font-size: 21px; font-weight: 700; line-height: 1.4; margin: 4px 0 16px; text-wrap: pretty; }
+  .question.multi { font-size: 32px; line-height: 1.3; }
   .op-btn.wide { grid-column: 1 / -1; }
+  .terms { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; margin-bottom: 16px; }
   .answer-input {
     width: 100%; padding: 18px; font: inherit; font-size: 30px; font-weight: 700; text-align: center;
     border-radius: 16px; border: 2px solid var(--line); background: rgba(0,0,0,.25);
@@ -247,6 +249,8 @@
       <div class="picker" id="picker"></div>
     </div>
     <div class="rng-hint hidden arith-only" id="rngHint">🎲 Числа будут случайными</div>
+    <div class="label arith-only">Сколько чисел в примере</div>
+    <div class="terms arith-only" id="termsSel"></div>
     <div class="label">Сколько вопросов</div>
     <div class="counts" id="counts"></div>
     <div class="toggle-row arith-only">
@@ -347,6 +351,7 @@
   let op = 'mul';         // выбранное действие
   let taskOp = 'mul';     // тип задач: mul/div/add/sub/all
   let range = 10;         // диапазон чисел: 10, 100 или 1000
+  let terms = 2;          // сколько чисел в примере (2, 3, 4, 5)
   let column = false;     // записывать пример «в столбик»
   let beginner = false;   // показывать умножение как сложение
   let missing = false;    // спрятать одно число (найди пропущенное)
@@ -383,10 +388,11 @@
     const isTask = (op === 'task');
     document.querySelectorAll('.arith-only').forEach(el => el.classList.toggle('hidden', isTask));
     document.querySelectorAll('.task-only').forEach(el => el.classList.toggle('hidden', !isTask));
-    if (!isTask) {                       // вернулись к обычным действиям — восстановим по диапазону
-      const small = (range === 10);
-      numberSection.classList.toggle('hidden', !small);
-      rngHint.classList.toggle('hidden', small);
+    if (!isTask) {
+      // выбор конкретных чисел нужен только для «до 10» И ровно 2 чисел в примере
+      const pickMode = (range === 10 && terms === 2);
+      numberSection.classList.toggle('hidden', !pickMode);
+      rngHint.classList.toggle('hidden', !(range !== 10 && terms === 2));
     }
   }
 
@@ -461,11 +467,26 @@
     document.querySelectorAll('#ranges .pick-btn').forEach(x => x.classList.remove('active'));
     b.classList.add('active');
     range = parseInt(b.dataset.range, 10);
-    // выбор конкретных чисел нужен только для диапазона «до 10»
-    const small = (range === 10);
-    numberSection.classList.toggle('hidden', !small);
-    rngHint.classList.toggle('hidden', small);
     rngHint.textContent = `🎲 Числа будут случайными до ${range}`;
+    refreshOpUI();
+  });
+
+  // ---------- Сколько чисел в примере ----------
+  const termsSel = document.getElementById('termsSel');
+  [2, 3, 4, 5].forEach((n, idx) => {
+    const b = document.createElement('button');
+    b.className = 'pick-btn' + (idx === 0 ? ' active' : '');
+    b.textContent = n;
+    b.dataset.terms = n;
+    termsSel.appendChild(b);
+  });
+  termsSel.addEventListener('click', (e) => {
+    const b = e.target.closest('.pick-btn');
+    if (!b) return;
+    document.querySelectorAll('#termsSel .pick-btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    terms = parseInt(b.dataset.terms, 10);
+    refreshOpUI();
   });
 
   // ---------- Умножение как сложение (для новичков) ----------
@@ -653,9 +674,41 @@
     return { a: 0, b: 0, answer: t.answer, text: t.text };
   }
 
-  // Один пример. Задачи — отдельно; «до 10» — по выбранным числам; больше — случайные.
+  // Цепочка из нескольких чисел: 3 + 2 + 4 (и так же для −, ×, ÷)
+  function chainResult(nums, answer) {
+    return { a: 0, b: 0, answer, multi: true, text: nums.join(` ${SIGN[op]} `) };
+  }
+  function makeChain() {
+    const N = terms, M = range;
+    if (op === 'add') {
+      const mx = M === 10 ? 9 : M === 100 ? 20 : 99;
+      const nums = Array.from({ length: N }, () => rand(1, mx));
+      return chainResult(nums, nums.reduce((s, x) => s + x, 0));
+    }
+    if (op === 'sub') {
+      const mx = M === 10 ? 9 : M === 100 ? 20 : 99;
+      const subs = Array.from({ length: N - 1 }, () => rand(1, mx));
+      const result = rand(1, mx);
+      const first = result + subs.reduce((s, x) => s + x, 0);
+      return chainResult([first, ...subs], result);
+    }
+    if (op === 'mul') {
+      const mx = M === 10 ? 6 : M === 100 ? 7 : 9;
+      const nums = Array.from({ length: N }, () => rand(2, mx));
+      return chainResult(nums, nums.reduce((p, x) => p * x, 1));
+    }
+    // деление: строим от ответа вверх, чтобы всё делилось нацело
+    const divs = Array.from({ length: N - 1 }, () => rand(2, 6));
+    const result = rand(2, 9);
+    let first = result;
+    divs.forEach(d => first *= d);
+    return chainResult([first, ...divs], result);
+  }
+
+  // Один пример. Задачи и цепочки — отдельно; «до 10» — по выбранным числам; больше — случайные.
   function makeProblem() {
     if (op === 'task') return makeTask();
+    if (terms > 2) return makeChain();
     if (range === 10) {
       const n = selected[rand(0, selected.length - 1)];
       const k = rand(1, MAX_FACTOR);
@@ -685,7 +738,7 @@
 
   // Что игрок должен ввести: в обычном режиме — результат, в «найди пропущенное» — спрятанное число
   function expected(q) {
-    if (!missing || op === 'task') return q.answer;
+    if (!missing || op === 'task' || q.multi) return q.answer;
     return q.hide === 0 ? q.a : q.b;
   }
 
@@ -716,7 +769,7 @@
   // Подсказка для новичков: умножение как повторное сложение (2 × 5 → 5 + 5)
   function showHint(q) {
     hintLine.classList.add('hidden');
-    if (!beginner || op !== 'mul' || missing) return;
+    if (!beginner || op !== 'mul' || missing || q.multi) return;
     const count = Math.min(q.a, q.b);   // сколько раз складываем
     const big = Math.max(q.a, q.b);     // что складываем
     if (count < 2 || count > 12) return; // слишком мало/много слагаемых — не показываем
@@ -740,7 +793,7 @@
 
   function startTraining() {
     selected = [...document.querySelectorAll('.pick-num.active')].map(b => parseInt(b.dataset.val, 10));
-    if (op !== 'task' && range === 10 && selected.length === 0) { alert('Выбери хотя бы одно число!'); return; }
+    if (op !== 'task' && terms === 2 && range === 10 && selected.length === 0) { alert('Выбери хотя бы одно число!'); return; }
     buildQuestions();
     current = 0; score = 0;
     qTotal.textContent = total;
@@ -753,7 +806,8 @@
     const q = questions[current];
     qNum.textContent = current + 1;
     questionEl.classList.toggle('task', op === 'task');
-    if (op === 'task') questionEl.textContent = q.text;
+    questionEl.classList.toggle('multi', !!q.multi);
+    if (op === 'task' || q.multi) questionEl.textContent = q.text;
     else if (missing) questionEl.innerHTML = missingHTML(q);
     else if (column) questionEl.innerHTML = columnHTML(q);
     else questionEl.textContent = q.text;
