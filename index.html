@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Тренажёр таблицы умножения</title>
+<title>Тренажёр по математике</title>
 <style>
   :root {
     --bg: #14142b;
@@ -44,12 +44,24 @@
     position: relative;
     z-index: 1;
   }
-  h1 { font-size: 24px; text-align: center; letter-spacing: .3px; text-wrap: balance; }
+  h1 { font-size: 23px; text-align: center; letter-spacing: .3px; text-wrap: balance; }
   .subtitle { text-align: center; color: var(--muted); font-size: 14px; margin: 8px 0 22px; }
   .label {
     font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase;
     color: var(--muted); text-align: center; margin: 4px 0 12px;
   }
+  /* Выбор действия */
+  .ops { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; margin-bottom: 16px; }
+  .op-btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 14px; border: 1px solid var(--line); background: rgba(255,255,255,.03);
+    color: var(--ink); border-radius: 14px; font: inherit; font-size: 15px; font-weight: 700;
+    cursor: pointer; transition: transform .12s, background .15s, border-color .15s;
+  }
+  .op-btn:hover { border-color: var(--violet); transform: translateY(-2px); }
+  .op-btn.active { background: linear-gradient(180deg, var(--violet-2), var(--violet)); border-color: transparent; color: #fff; box-shadow: 0 8px 20px rgba(124,108,240,.45); }
+  .op-emoji { font-size: 18px; }
+
   .picker { display: grid; grid-template-columns: repeat(5, 1fr); gap: 9px; margin-bottom: 10px; }
   .pick-btn {
     padding: 14px 0; border: 1px solid var(--line); background: rgba(255,255,255,.03);
@@ -65,7 +77,6 @@
   .pick-btn.all { grid-column: span 5; letter-spacing: .3px; margin-bottom: 4px; }
   .counts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-bottom: 16px; }
 
-  /* Переключатель «опасного режима» */
   .toggle-row {
     display: flex; align-items: center; justify-content: space-between; gap: 12px;
     background: rgba(0,0,0,.2); border: 1px solid var(--line); border-radius: 14px;
@@ -101,7 +112,7 @@
   .timer.hidden { display: none; }
   .progress-bar { height: 10px; background: rgba(0,0,0,.3); border-radius: 10px; overflow: hidden; margin-bottom: 20px; }
   .progress-fill { height: 100%; width: 0; background: linear-gradient(90deg, var(--violet), var(--mint)); transition: width .35s ease; }
-  .question { text-align: center; font-size: 52px; font-weight: 800; margin: 6px 0 22px; font-variant-numeric: tabular-nums; }
+  .question { text-align: center; font-size: 48px; font-weight: 800; margin: 6px 0 22px; font-variant-numeric: tabular-nums; }
   .answer-input {
     width: 100%; padding: 18px; font: inherit; font-size: 30px; font-weight: 700; text-align: center;
     border-radius: 16px; border: 2px solid var(--line); background: rgba(0,0,0,.25);
@@ -127,7 +138,6 @@
   .result .detail { color: var(--muted); margin-bottom: 6px; }
   .result .record-new { color: var(--gold); font-weight: 800; margin-bottom: 20px; min-height: 22px; }
 
-  /* Вспышка на весь экран */
   .flash { position: fixed; inset: 0; pointer-events: none; opacity: 0; z-index: 999; }
   .flash-wrong { animation: flashWrong 1s ease-out; }
   .flash-good { animation: flashGood .5s ease-out; }
@@ -137,10 +147,7 @@
     55%  { background: #ffffff; opacity: .95; }
     100% { background: #ffffff; opacity: 0; }
   }
-  @keyframes flashGood {
-    0%   { background: #34d399; opacity: .5; }
-    100% { background: #34d399; opacity: 0; }
-  }
+  @keyframes flashGood { 0% { background: #34d399; opacity: .5; } 100% { background: #34d399; opacity: 0; } }
   @media (prefers-reduced-motion: reduce) {
     .answer-input.shake, .flash-wrong, .flash-good { animation: none; }
     * { transition: none !important; }
@@ -153,9 +160,11 @@
 
   <!-- ЭКРАН НАСТРОЙКИ -->
   <div id="setup">
-    <h1>✖️ Тренажёр таблицы умножения</h1>
-    <p class="subtitle">Выбери одно или несколько чисел</p>
-    <div class="label">Множитель (можно несколько)</div>
+    <h1>🧮 Тренажёр по математике</h1>
+    <p class="subtitle">Выбери действие и число</p>
+    <div class="label">Действие</div>
+    <div class="ops" id="ops"></div>
+    <div class="label">Число (можно несколько)</div>
     <div class="picker" id="picker"></div>
     <div class="label">Сколько вопросов</div>
     <div class="counts" id="counts"></div>
@@ -205,21 +214,47 @@
 
 <script>
   // ====== НАСТРОЙКИ ======
-  const MAX_FACTOR = 10;   // на что умножаем (1..10)
+  const MAX_FACTOR = 10;   // второе число в примере (1..10)
   const PER_Q = 10;        // секунд на вопрос в опасном режиме
-  const RECORD_KEY = 'multi-trainer-record';
+
+  // Описание всех действий. Для каждого — как построить пример.
+  const OPS = {
+    mul: { emoji: '✖️', name: 'Умножение',  make: (n, k) => ({ text: `${n} × ${k}`,       answer: n * k }) },
+    div: { emoji: '➗', name: 'Деление',    make: (n, k) => ({ text: `${n * k} ÷ ${n}`,   answer: k }) },
+    add: { emoji: '➕', name: 'Сложение',   make: (n, k) => ({ text: `${n} + ${k}`,       answer: n + k }) },
+    sub: { emoji: '➖', name: 'Вычитание',  make: (n, k) => ({ text: `${n + k} − ${n}`,   answer: k }) },
+  };
 
   // ====== СОСТОЯНИЕ ======
+  let op = 'mul';         // выбранное действие
   let selected = [];
   let total = 10;
-  let danger = false;      // включён ли опасный режим (таймер)
+  let danger = false;
   let questions = [];
   let current = 0;
   let score = 0;
   let timeLeft = PER_Q;
   let timerId = null;
 
-  // ---------- Кнопки множителей ----------
+  // ---------- Кнопки действий ----------
+  const opsEl = document.getElementById('ops');
+  Object.keys(OPS).forEach((key, idx) => {
+    const b = document.createElement('button');
+    b.className = 'op-btn' + (idx === 0 ? ' active' : '');
+    b.dataset.op = key;
+    b.innerHTML = `<span class="op-emoji">${OPS[key].emoji}</span> ${OPS[key].name}`;
+    opsEl.appendChild(b);
+  });
+  opsEl.addEventListener('click', (e) => {
+    const b = e.target.closest('.op-btn');
+    if (!b) return;
+    document.querySelectorAll('.op-btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    op = b.dataset.op;
+    showRecord(); // у каждого действия свой рекорд
+  });
+
+  // ---------- Кнопки чисел ----------
   const picker = document.getElementById('picker');
   for (let i = 1; i <= 10; i++) {
     const b = document.createElement('button');
@@ -255,7 +290,7 @@
     total = parseInt(b.dataset.count, 10);
   });
 
-  // ---------- Переключатель опасного режима ----------
+  // ---------- Опасный режим ----------
   const dangerToggle = document.getElementById('dangerToggle');
   dangerToggle.addEventListener('click', () => {
     danger = !danger;
@@ -263,9 +298,13 @@
     dangerToggle.setAttribute('aria-checked', danger);
   });
 
-  // ---------- Рекорд ----------
-  function getRecord() { return parseInt(localStorage.getItem(RECORD_KEY) || '0', 10); }
-  function showRecord() { document.getElementById('recordLine').textContent = `🏆 Рекорд: ${getRecord()} очков`; }
+  // ---------- Рекорд (свой для каждого действия) ----------
+  function recordKey() { return 'trainer-record-' + op; }
+  function getRecord() { return parseInt(localStorage.getItem(recordKey()) || '0', 10); }
+  function showRecord() {
+    document.getElementById('recordLine').textContent =
+      `🏆 Рекорд (${OPS[op].name.toLowerCase()}): ${getRecord()} очков`;
+  }
   showRecord();
 
   // ---------- Экраны ----------
@@ -278,9 +317,9 @@
   function buildQuestions() {
     questions = [];
     for (let i = 0; i < total; i++) {
-      const a = selected[rand(0, selected.length - 1)];
-      const b = rand(1, MAX_FACTOR);
-      questions.push({ a, b, answer: a * b });
+      const n = selected[rand(0, selected.length - 1)]; // случайное из выбранных чисел
+      const k = rand(1, MAX_FACTOR);
+      questions.push(OPS[op].make(n, k));               // строим пример по действию
     }
   }
 
@@ -311,16 +350,14 @@
   function renderQuestion() {
     const q = questions[current];
     qNum.textContent = current + 1;
-    questionEl.textContent = `${q.a} × ${q.b}`;
+    questionEl.textContent = q.text;
     answerInput.value = '';
     answerInput.disabled = false;
     feedback.textContent = '';
     feedback.className = 'feedback';
     progressFill.style.width = (current / total * 100) + '%';
-    // кнопки: показываем «Проверить», прячем «Далее»
     checkBtn.classList.remove('hidden');
     nextBtn.classList.add('hidden');
-    // таймер — только в опасном режиме
     timerEl.classList.toggle('hidden', !danger);
     answerInput.focus();
     if (danger) startTimer();
@@ -342,17 +379,17 @@
     timerEl.classList.toggle('low', timeLeft <= 3);
   }
 
-  // ---------- Вспышка на весь экран ----------
+  // ---------- Вспышка ----------
   function flash(kind) {
-    flashEl.className = 'flash';       // сброс
-    void flashEl.offsetWidth;          // перезапуск анимации
+    flashEl.className = 'flash';
+    void flashEl.offsetWidth;
     flashEl.classList.add(kind === 'wrong' ? 'flash-wrong' : 'flash-good');
   }
 
   function timeUp() {
     const q = questions[current];
     flash('wrong');
-    feedback.textContent = `⏱ Время вышло! ${q.a} × ${q.b} = ${q.answer}`;
+    feedback.textContent = `⏱ Время вышло! ${q.text} = ${q.answer}`;
     feedback.className = 'feedback bad';
     answerInput.classList.add('shake');
     setTimeout(() => answerInput.classList.remove('shake'), 400);
@@ -375,7 +412,7 @@
       feedback.className = 'feedback good';
     } else {
       flash('wrong');
-      feedback.textContent = `❌ Неверно. Правильно: ${q.a} × ${q.b} = ${q.answer}`;
+      feedback.textContent = `❌ Неверно. Правильно: ${q.text} = ${q.answer}`;
       feedback.className = 'feedback bad';
       answerInput.classList.add('shake');
       setTimeout(() => answerInput.classList.remove('shake'), 400);
@@ -383,7 +420,6 @@
     finishQuestion();
   }
 
-  // после ответа: блокируем ввод и показываем зелёную «Далее»
   function finishQuestion() {
     answerInput.disabled = true;
     progressFill.style.width = ((current + 1) / total * 100) + '%';
@@ -408,7 +444,7 @@
     const record = getRecord();
     const recordNew = document.getElementById('recordNew');
     if (score > record) {
-      localStorage.setItem(RECORD_KEY, score);
+      localStorage.setItem(recordKey(), score);
       recordNew.textContent = '🏆 Новый рекорд!';
     } else {
       recordNew.textContent = `Рекорд: ${record} очков`;
