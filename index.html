@@ -207,6 +207,19 @@
   .pcell.corner { background: transparent; color: var(--muted); }
   .pif-answer { text-align: center; font-size: 22px; font-weight: 800; margin-bottom: 14px; color: var(--mint); min-height: 28px; font-variant-numeric: tabular-nums; }
   .pif-answer.hint { color: var(--muted); font-size: 15px; font-weight: 600; }
+
+  /* Подсказка про диапазон */
+  .rng-hint { text-align: center; color: var(--muted); font-size: 14px; margin: -4px 0 14px; }
+
+  /* Запись «в столбик» */
+  .col { display: inline-block; text-align: right; font-variant-numeric: tabular-nums; line-height: 1.15; }
+  .col-n { padding: 0 10px; position: relative; }
+  .col-sign { position: absolute; left: 8px; color: var(--violet-2); }
+  .col-rule { height: 4px; background: var(--ink); border-radius: 3px; margin: 6px 6px 0; }
+  .col-div { display: inline-grid; grid-template-columns: auto auto; align-items: start; font-variant-numeric: tabular-nums; line-height: 1.15; }
+  .cd-dividend { grid-column: 1; grid-row: 1; padding: 0 12px 6px 8px; border-right: 4px solid var(--ink); }
+  .cd-divisor { grid-column: 2; grid-row: 1; padding: 0 8px 6px 12px; border-bottom: 4px solid var(--ink); }
+  .cd-quotient { grid-column: 2; grid-row: 2; padding: 6px 8px 0 12px; color: var(--muted); font-size: 26px; }
 </style>
 </head>
 <body>
@@ -219,10 +232,21 @@
     <p class="subtitle">Выбери действие и число</p>
     <div class="label">Действие</div>
     <div class="ops" id="ops"></div>
-    <div class="label">Число (можно несколько)</div>
-    <div class="picker" id="picker"></div>
+    <div class="label">Диапазон чисел</div>
+    <div class="counts" id="ranges"></div>
+    <div id="numberSection">
+      <div class="label">Число (можно несколько)</div>
+      <div class="picker" id="picker"></div>
+    </div>
+    <div class="rng-hint hidden" id="rngHint">🎲 Числа будут случайными</div>
     <div class="label">Сколько вопросов</div>
     <div class="counts" id="counts"></div>
+    <div class="toggle-row">
+      <span class="t-label">📝 Записать в столбик
+        <span class="t-sub">Пример как на бумаге, стопкой</span>
+      </span>
+      <button class="switch" id="columnToggle" role="switch" aria-checked="false" aria-label="Записать в столбик"></button>
+    </div>
     <div class="toggle-row">
       <span class="t-label">🔥 Опасный режим
         <span class="t-sub">Таймер на каждый вопрос + бонус за скорость</span>
@@ -287,16 +311,20 @@
   const MAX_FACTOR = 10;   // второе число в примере (1..10)
   const PER_Q = 10;        // секунд на вопрос в опасном режиме
 
-  // Описание всех действий. Для каждого — как построить пример.
+  // Описание всех действий. make возвращает {a, b, answer, text}:
+  // a и b — два числа примера, они же строки/столбики для записи «в столбик».
   const OPS = {
-    mul: { emoji: '✖️', name: 'Умножение',  make: (n, k) => ({ text: `${n} × ${k}`,       answer: n * k }) },
-    div: { emoji: '➗', name: 'Деление',    make: (n, k) => ({ text: `${n * k} ÷ ${n}`,   answer: k }) },
-    add: { emoji: '➕', name: 'Сложение',   make: (n, k) => ({ text: `${n} + ${k}`,       answer: n + k }) },
-    sub: { emoji: '➖', name: 'Вычитание',  make: (n, k) => ({ text: `${n + k} − ${n}`,   answer: k }) },
+    mul: { emoji: '✖️', name: 'Умножение',  make: (n, k) => ({ a: n,     b: k, answer: n * k, text: `${n} × ${k}` }) },
+    div: { emoji: '➗', name: 'Деление',    make: (n, k) => ({ a: n * k, b: n, answer: k,     text: `${n * k} ÷ ${n}` }) },
+    add: { emoji: '➕', name: 'Сложение',   make: (n, k) => ({ a: n,     b: k, answer: n + k, text: `${n} + ${k}` }) },
+    sub: { emoji: '➖', name: 'Вычитание',  make: (n, k) => ({ a: n + k, b: n, answer: k,     text: `${n + k} − ${n}` }) },
   };
+  const SIGN = { mul: '×', div: '÷', add: '+', sub: '−' };
 
   // ====== СОСТОЯНИЕ ======
   let op = 'mul';         // выбранное действие
+  let range = 10;         // диапазон чисел: 10, 100 или 1000
+  let column = false;     // записывать пример «в столбик»
   let selected = [];
   let total = 10;
   let danger = false;
@@ -358,6 +386,38 @@
     document.querySelectorAll('#counts .pick-btn').forEach(x => x.classList.remove('active'));
     b.classList.add('active');
     total = parseInt(b.dataset.count, 10);
+  });
+
+  // ---------- Диапазон чисел ----------
+  const numberSection = document.getElementById('numberSection');
+  const rngHint = document.getElementById('rngHint');
+  const rangesEl = document.getElementById('ranges');
+  [['до 10', 10], ['до 100', 100], ['до 1000', 1000]].forEach(([label, val], idx) => {
+    const b = document.createElement('button');
+    b.className = 'pick-btn' + (idx === 0 ? ' active' : '');
+    b.textContent = label;
+    b.dataset.range = val;
+    rangesEl.appendChild(b);
+  });
+  rangesEl.addEventListener('click', (e) => {
+    const b = e.target.closest('.pick-btn');
+    if (!b) return;
+    document.querySelectorAll('#ranges .pick-btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    range = parseInt(b.dataset.range, 10);
+    // выбор конкретных чисел нужен только для диапазона «до 10»
+    const small = (range === 10);
+    numberSection.classList.toggle('hidden', !small);
+    rngHint.classList.toggle('hidden', small);
+    rngHint.textContent = `🎲 Числа будут случайными до ${range}`;
+  });
+
+  // ---------- Запись «в столбик» ----------
+  const columnToggle = document.getElementById('columnToggle');
+  columnToggle.addEventListener('click', () => {
+    column = !column;
+    columnToggle.classList.toggle('on', column);
+    columnToggle.setAttribute('aria-checked', column);
   });
 
   // ---------- Опасный режим ----------
@@ -462,13 +522,45 @@
   function show(el) { [setupEl, trainerEl, resultEl, tablesEl].forEach(x => x.classList.add('hidden')); el.classList.remove('hidden'); }
   function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 
+  // Один пример. Для «до 10» — по выбранным числам; для больших — случайные.
+  function makeProblem() {
+    if (range === 10) {
+      const n = selected[rand(0, selected.length - 1)];
+      const k = rand(1, MAX_FACTOR);
+      return OPS[op].make(n, k);
+    }
+    const M = range;
+    let a, b, answer;
+    if (op === 'add')      { a = rand(1, M); b = rand(1, M); answer = a + b; }
+    else if (op === 'sub') { a = rand(1, M); b = rand(1, a); answer = a - b; }
+    else if (op === 'mul') { a = rand(2, M); b = rand(2, M === 100 ? 9 : 12); answer = a * b; }
+    else {                 // деление: подбираем так, чтобы делилось нацело
+      b = rand(2, 9);
+      const q = rand(2, Math.max(2, Math.floor(M / b)));
+      a = b * q; answer = q;
+    }
+    return { a, b, answer, text: `${a} ${SIGN[op]} ${b}` };
+  }
+
   function buildQuestions() {
     questions = [];
-    for (let i = 0; i < total; i++) {
-      const n = selected[rand(0, selected.length - 1)]; // случайное из выбранных чисел
-      const k = rand(1, MAX_FACTOR);
-      questions.push(OPS[op].make(n, k));               // строим пример по действию
+    for (let i = 0; i < total; i++) questions.push(makeProblem());
+  }
+
+  // Пример «в столбик»: сложение/вычитание/умножение — стопкой, деление — уголком.
+  function columnHTML(q) {
+    if (op === 'div') {
+      return `<div class="col-div">
+        <div class="cd-dividend">${q.a}</div>
+        <div class="cd-divisor">${q.b}</div>
+        <div class="cd-quotient">?</div>
+      </div>`;
     }
+    return `<div class="col">
+      <div class="col-n">${q.a}</div>
+      <div class="col-n"><span class="col-sign">${SIGN[op]}</span>${q.b}</div>
+      <div class="col-rule"></div>
+    </div>`;
   }
 
   // ---------- Элементы тренировки ----------
@@ -486,7 +578,7 @@
 
   function startTraining() {
     selected = [...document.querySelectorAll('.pick-num.active')].map(b => parseInt(b.dataset.val, 10));
-    if (selected.length === 0) { alert('Выбери хотя бы одно число!'); return; }
+    if (range === 10 && selected.length === 0) { alert('Выбери хотя бы одно число!'); return; }
     buildQuestions();
     current = 0; score = 0;
     qTotal.textContent = total;
@@ -498,7 +590,8 @@
   function renderQuestion() {
     const q = questions[current];
     qNum.textContent = current + 1;
-    questionEl.textContent = q.text;
+    if (column) questionEl.innerHTML = columnHTML(q);
+    else questionEl.textContent = q.text;
     answerInput.value = '';
     answerInput.disabled = false;
     feedback.textContent = '';
