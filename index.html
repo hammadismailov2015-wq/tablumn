@@ -238,6 +238,8 @@
     <p class="subtitle">Выбери действие и число</p>
     <div class="label">Действие</div>
     <div class="ops" id="ops"></div>
+    <div class="label task-only hidden">Тип задач</div>
+    <div class="ops task-only hidden" id="taskOps"></div>
     <div class="label arith-only">Диапазон чисел</div>
     <div class="counts arith-only" id="ranges"></div>
     <div id="numberSection" class="arith-only">
@@ -343,6 +345,7 @@
 
   // ====== СОСТОЯНИЕ ======
   let op = 'mul';         // выбранное действие
+  let taskOp = 'mul';     // тип задач: mul/div/add/sub/all
   let range = 10;         // диапазон чисел: 10, 100 или 1000
   let column = false;     // записывать пример «в столбик»
   let beginner = false;   // показывать умножение как сложение
@@ -375,16 +378,35 @@
     refreshOpUI();    // задачи не используют часть настроек — прячем их
   });
 
-  // Прячем «арифметические» настройки, если выбран режим задач
+  // Прячем «арифметические» настройки в режиме задач и показываем выбор типа задач
   function refreshOpUI() {
     const isTask = (op === 'task');
     document.querySelectorAll('.arith-only').forEach(el => el.classList.toggle('hidden', isTask));
+    document.querySelectorAll('.task-only').forEach(el => el.classList.toggle('hidden', !isTask));
     if (!isTask) {                       // вернулись к обычным действиям — восстановим по диапазону
       const small = (range === 10);
       numberSection.classList.toggle('hidden', !small);
       rngHint.classList.toggle('hidden', small);
     }
   }
+
+  // ---------- Тип задач ----------
+  const TASK_OPS = { mul: '✖️ Умножение', div: '➗ Деление', add: '➕ Сложение', sub: '➖ Вычитание', all: '🎲 Вперемешку' };
+  const taskOpsEl = document.getElementById('taskOps');
+  Object.keys(TASK_OPS).forEach((key, idx) => {
+    const b = document.createElement('button');
+    b.className = 'op-btn' + (idx === 0 ? ' active' : '') + (key === 'all' ? ' wide' : '');
+    b.dataset.taskop = key;
+    b.textContent = TASK_OPS[key];
+    taskOpsEl.appendChild(b);
+  });
+  taskOpsEl.addEventListener('click', (e) => {
+    const b = e.target.closest('.op-btn');
+    if (!b) return;
+    document.querySelectorAll('#taskOps .op-btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    taskOp = b.dataset.taskop;
+  });
 
   // ---------- Кнопки чисел ----------
   const picker = document.getElementById('picker');
@@ -596,33 +618,38 @@
   const wItems = (n, it) => `${n} ${plural(n, it.one, it.few, it.many)}`;
   const rub = n => `${n} рублей`;   // деньги всегда кратны 10 → всегда «рублей»
 
-  // Каждый шаблон возвращает {text, answer}
-  const TASKS = [
-    () => {   // купил N по цене, отдал больше — сколько сдачи (× затем −)
-      const n = rand(2, 4), price = rand(2, 9) * 10, it = pick(ITEMS);
-      const total = n * price, paid = total + rand(1, 4) * 10;
-      return { text: `${pick(NAMES).nom} купил ${wItems(n, it)} по ${rub(price)} и отдал ${rub(paid)}. Сколько сдачи ему должны дать?`, answer: paid - total };
-    },
-    () => {   // N по цене + ещё покупка — сколько всего (× затем +)
-      const n = rand(2, 4), price = rand(2, 9) * 10, extra = rand(2, 9) * 10, it = pick(ITEMS);
-      return { text: `${pick(NAMES).nom} купил ${wItems(n, it)} по ${rub(price)} и ещё одну вещь за ${rub(extra)}. Сколько всего он заплатил?`, answer: n * price + extra };
-    },
-    () => {   // разложили поровну — сколько в каждой (÷)
-      const per = rand(2, 6), k = rand(2, 4), it = pick(ITEMS), total = per * k;
-      return { text: `${wItems(total, it)} разложили поровну на ${k} тарелки. Сколько ${it.many} на каждой?`, answer: per };
-    },
-    () => {   // было, часть забрали — сколько осталось (−)
-      const total = rand(12, 40), gone = rand(3, total - 2), it = pick(ITEMS);
-      return { text: `На столе было ${wItems(total, it)}. Забрали ${wItems(gone, it)}. Сколько ${it.many} осталось?`, answer: total - gone };
-    },
-    () => {   // у одного столько, у другого на b больше — сколько вместе (+)
-      const a = rand(3, 10), b = rand(2, 8), it = pick(ITEMS);
-      return { text: `У ${pick(NAMES).gen} ${wItems(a, it)}, а у друга на ${b} больше. Сколько ${it.many} у них вместе?`, answer: a + (a + b) };
-    },
-  ];
+  // Задачи по действиям. Каждый шаблон возвращает {text, answer}.
+  const TASKS = {
+    mul: [
+      () => { const n = rand(2, 9), k = rand(2, 9), it = pick(ITEMS);
+        return { text: `В ${n} коробках лежит по ${wItems(k, it)}. Сколько ${it.many} всего?`, answer: n * k }; },
+      () => { const n = rand(2, 9), price = rand(2, 9) * 10, it = pick(ITEMS);
+        return { text: `${pick(NAMES).nom} купил ${wItems(n, it)} по ${rub(price)}. Сколько всего он заплатил?`, answer: n * price }; },
+    ],
+    div: [
+      () => { const per = rand(2, 9), k = rand(2, 4), it = pick(ITEMS), total = per * k;
+        return { text: `${wItems(total, it)} разложили поровну на ${k} тарелки. Сколько ${it.many} на каждой?`, answer: per }; },
+      () => { const per = rand(2, 9) * 10, k = rand(2, 4), total = per * k;
+        return { text: `${rub(total)} раздали поровну ${k} детям. Сколько рублей получил каждый?`, answer: per }; },
+    ],
+    add: [
+      () => { const a = rand(2, 15), b = rand(2, 15), it = pick(ITEMS);
+        return { text: `У ${pick(NAMES).gen} ${wItems(a, it)}, а у друга ${b}. Сколько ${it.many} у них вместе?`, answer: a + b }; },
+      () => { const a = rand(5, 20), b = rand(2, 15), it = pick(ITEMS);
+        return { text: `На полке было ${wItems(a, it)}, поставили ещё ${b}. Сколько ${it.many} стало?`, answer: a + b }; },
+    ],
+    sub: [
+      () => { const a = rand(6, 20), b = rand(2, a - 1), it = pick(ITEMS);
+        return { text: `Было ${wItems(a, it)}. Забрали ${wItems(b, it)}. Сколько ${it.many} осталось?`, answer: a - b }; },
+      () => { const cost = rand(2, 8) * 10, paid = cost + rand(1, 4) * 10;
+        return { text: `${pick(NAMES).nom} отдал ${rub(paid)} за покупку в ${rub(cost)}. Сколько сдачи он получит?`, answer: paid - cost }; },
+    ],
+  };
 
   function makeTask() {
-    const t = pick(TASKS)();
+    // берём задачи нужного типа, либо все сразу («вперемешку»)
+    const pool = taskOp === 'all' ? [].concat(TASKS.mul, TASKS.div, TASKS.add, TASKS.sub) : TASKS[taskOp];
+    const t = pick(pool)();
     return { a: 0, b: 0, answer: t.answer, text: t.text };
   }
 
