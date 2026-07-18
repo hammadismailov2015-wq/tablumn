@@ -241,12 +241,10 @@
   <div id="setup">
     <h1>🧮 Тренажёр по математике</h1>
     <p class="subtitle">Выбери действие и число</p>
-    <div id="actionArea">
-      <div class="section-box">
-        <div class="box-title">🔢 Примеры</div>
-        <div class="ops" id="opsExamples"></div>
-      </div>
-      <div class="ops" id="opsTask"></div>
+    <div class="ops" id="modeSel"></div>
+    <div class="section-box" id="examplesBox">
+      <div class="box-title">🔢 Выбери действие</div>
+      <div class="ops" id="opsExamples"></div>
     </div>
     <div class="label task-only hidden">Тип задач</div>
     <div class="ops task-only hidden" id="taskOps"></div>
@@ -358,6 +356,7 @@
 
   // ====== СОСТОЯНИЕ ======
   let op = 'mul';         // выбранное действие
+  let exampleOp = 'mul';  // последнее выбранное действие в «Примерах»
   let taskOp = 'mul';     // тип задач: mul/div/add/sub/all
   let range = 10;         // диапазон чисел: 10, 100 или 1000
   let terms = 2;          // сколько чисел в примере (2, 3, 4, 5)
@@ -374,29 +373,49 @@
   let timerId = null;
 
   // ---------- Кнопки действий ----------
-  const opsExamplesEl = document.getElementById('opsExamples');
-  const opsTaskEl = document.getElementById('opsTask');
-  Object.keys(OPS).forEach((key) => {
+  // Верхний выбор: «Примеры» или «Задачи» — под ними раскрывается своё
+  const modeSelEl = document.getElementById('modeSel');
+  [['🔢 Примеры', 'examples'], ['📖 Задачи', 'task']].forEach(([label, m], idx) => {
     const b = document.createElement('button');
-    b.className = 'op-btn' + (key === 'mul' ? ' active' : '') + (key === 'task' || key === 'mix' ? ' wide' : '');
-    b.dataset.op = key;
-    b.innerHTML = `<span class="op-emoji">${OPS[key].emoji}</span> ${OPS[key].name}`;
-    (key === 'task' ? opsTaskEl : opsExamplesEl).appendChild(b);  // «Задачи» — отдельно от коробки «Примеры»
+    b.className = 'op-btn' + (idx === 0 ? ' active' : '');
+    b.dataset.mode = m;
+    b.textContent = label;
+    modeSelEl.appendChild(b);
   });
-  const actionArea = document.getElementById('actionArea');
-  actionArea.addEventListener('click', (e) => {
+  modeSelEl.addEventListener('click', (e) => {
     const b = e.target.closest('.op-btn');
     if (!b) return;
-    actionArea.querySelectorAll('.op-btn').forEach(x => x.classList.remove('active'));
+    modeSelEl.querySelectorAll('.op-btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    op = (b.dataset.mode === 'task') ? 'task' : exampleOp;  // вернуться к последнему выбранному действию
+    showRecord();
+    refreshOpUI();
+  });
+
+  // Кнопки действий внутри «Примеры»
+  const opsExamplesEl = document.getElementById('opsExamples');
+  ['mul', 'div', 'add', 'sub', 'mix'].forEach((key) => {
+    const b = document.createElement('button');
+    b.className = 'op-btn' + (key === 'mul' ? ' active' : '') + (key === 'mix' ? ' wide' : '');
+    b.dataset.op = key;
+    b.innerHTML = `<span class="op-emoji">${OPS[key].emoji}</span> ${OPS[key].name}`;
+    opsExamplesEl.appendChild(b);
+  });
+  opsExamplesEl.addEventListener('click', (e) => {
+    const b = e.target.closest('.op-btn');
+    if (!b) return;
+    opsExamplesEl.querySelectorAll('.op-btn').forEach(x => x.classList.remove('active'));
     b.classList.add('active');
     op = b.dataset.op;
-    showRecord();     // у каждого действия свой рекорд
-    refreshOpUI();    // задачи не используют часть настроек — прячем их
+    exampleOp = op;   // запоминаем выбранное действие
+    showRecord();
+    refreshOpUI();
   });
 
   // Прячем «арифметические» настройки в режиме задач и показываем выбор типа задач
   function refreshOpUI() {
     const isTask = (op === 'task');
+    document.getElementById('examplesBox').classList.toggle('hidden', isTask);  // «Примеры» раскрыты только в своём режиме
     document.querySelectorAll('.arith-only').forEach(el => el.classList.toggle('hidden', isTask));
     document.querySelectorAll('.task-only').forEach(el => el.classList.toggle('hidden', !isTask));
     if (!isTask) {
