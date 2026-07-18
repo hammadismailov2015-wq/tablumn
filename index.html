@@ -65,6 +65,9 @@
   .op-btn:hover { border-color: var(--violet); transform: translateY(-2px); }
   .op-btn.active { background: linear-gradient(180deg, var(--violet-2), var(--violet)); border-color: transparent; color: #fff; box-shadow: 0 8px 20px rgba(124,108,240,.45); }
   .op-emoji { font-size: 18px; }
+  .section-box { border: 1px solid var(--line); border-radius: 16px; padding: 14px 12px; margin-bottom: 12px; background: rgba(0,0,0,.14); }
+  .box-title { font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); text-align: center; margin-bottom: 10px; }
+  .section-box .ops { margin-bottom: 0; }
 
   .picker { display: grid; grid-template-columns: repeat(5, 1fr); gap: 9px; margin-bottom: 10px; }
   .pick-btn {
@@ -238,8 +241,13 @@
   <div id="setup">
     <h1>🧮 Тренажёр по математике</h1>
     <p class="subtitle">Выбери действие и число</p>
-    <div class="label">Действие</div>
-    <div class="ops" id="ops"></div>
+    <div id="actionArea">
+      <div class="section-box">
+        <div class="box-title">🔢 Примеры</div>
+        <div class="ops" id="opsExamples"></div>
+      </div>
+      <div class="ops" id="opsTask"></div>
+    </div>
     <div class="label task-only hidden">Тип задач</div>
     <div class="ops task-only hidden" id="taskOps"></div>
     <div class="label arith-only">Диапазон чисел</div>
@@ -366,18 +374,20 @@
   let timerId = null;
 
   // ---------- Кнопки действий ----------
-  const opsEl = document.getElementById('ops');
-  Object.keys(OPS).forEach((key, idx) => {
+  const opsExamplesEl = document.getElementById('opsExamples');
+  const opsTaskEl = document.getElementById('opsTask');
+  Object.keys(OPS).forEach((key) => {
     const b = document.createElement('button');
-    b.className = 'op-btn' + (idx === 0 ? ' active' : '') + (key === 'task' || key === 'mix' ? ' wide' : '');
+    b.className = 'op-btn' + (key === 'mul' ? ' active' : '') + (key === 'task' || key === 'mix' ? ' wide' : '');
     b.dataset.op = key;
     b.innerHTML = `<span class="op-emoji">${OPS[key].emoji}</span> ${OPS[key].name}`;
-    opsEl.appendChild(b);
+    (key === 'task' ? opsTaskEl : opsExamplesEl).appendChild(b);  // «Задачи» — отдельно от коробки «Примеры»
   });
-  opsEl.addEventListener('click', (e) => {
+  const actionArea = document.getElementById('actionArea');
+  actionArea.addEventListener('click', (e) => {
     const b = e.target.closest('.op-btn');
     if (!b) return;
-    document.querySelectorAll('.op-btn').forEach(x => x.classList.remove('active'));
+    actionArea.querySelectorAll('.op-btn').forEach(x => x.classList.remove('active'));
     b.classList.add('active');
     op = b.dataset.op;
     showRecord();     // у каждого действия свой рекорд
