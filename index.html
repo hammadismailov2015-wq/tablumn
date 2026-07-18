@@ -212,10 +212,9 @@
   .rng-hint { text-align: center; color: var(--muted); font-size: 14px; margin: -4px 0 14px; }
 
   /* Запись «в столбик» */
-  .col { display: inline-block; text-align: right; font-variant-numeric: tabular-nums; line-height: 1.15; }
-  .col-n { padding: 0 10px; position: relative; }
-  .col-sign { position: absolute; left: 8px; color: var(--violet-2); }
-  .col-rule { height: 4px; background: var(--ink); border-radius: 3px; margin: 6px 6px 0; }
+  .col { display: inline-grid; grid-template-columns: auto auto; column-gap: 22px; justify-items: end; align-items: baseline; font-variant-numeric: tabular-nums; line-height: 1.25; }
+  .col-sign { color: var(--violet-2); justify-self: start; }
+  .col-rule { grid-column: 1 / -1; height: 4px; width: 100%; background: var(--ink); border-radius: 3px; margin-top: 8px; }
   .col-div { display: inline-grid; grid-template-columns: auto auto; align-items: start; font-variant-numeric: tabular-nums; line-height: 1.15; }
   .cd-dividend { grid-column: 1; grid-row: 1; padding: 0 12px 6px 8px; border-right: 4px solid var(--ink); }
   .cd-divisor { grid-column: 2; grid-row: 1; padding: 0 8px 6px 12px; border-bottom: 4px solid var(--ink); }
@@ -557,9 +556,9 @@
       </div>`;
     }
     return `<div class="col">
-      <div class="col-n">${q.a}</div>
-      <div class="col-n"><span class="col-sign">${SIGN[op]}</span>${q.b}</div>
-      <div class="col-rule"></div>
+      <span></span><span>${q.a}</span>
+      <span class="col-sign">${SIGN[op]}</span><span>${q.b}</span>
+      <span class="col-rule"></span>
     </div>`;
   }
 
