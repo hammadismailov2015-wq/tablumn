@@ -125,7 +125,9 @@
   .timer.hidden { display: none; }
   .progress-bar { height: 10px; background: rgba(0,0,0,.3); border-radius: 10px; overflow: hidden; margin-bottom: 20px; }
   .progress-fill { height: 100%; width: 0; background: linear-gradient(90deg, var(--violet), var(--mint)); transition: width .35s ease; }
-  .question { text-align: center; font-size: 48px; font-weight: 800; margin: 6px 0 22px; font-variant-numeric: tabular-nums; }
+  .question { text-align: center; font-size: 48px; font-weight: 800; margin: 6px 0 14px; font-variant-numeric: tabular-nums; }
+  .hint-line { text-align: center; color: var(--muted); font-size: 16px; font-weight: 600; margin: 0 0 16px; min-height: 20px; font-variant-numeric: tabular-nums; text-wrap: balance; }
+  .hint-line b { color: var(--violet-2); }
   .answer-input {
     width: 100%; padding: 18px; font: inherit; font-size: 30px; font-weight: 700; text-align: center;
     border-radius: 16px; border: 2px solid var(--line); background: rgba(0,0,0,.25);
@@ -241,6 +243,12 @@
     <div class="label">Сколько вопросов</div>
     <div class="counts" id="counts"></div>
     <div class="toggle-row">
+      <span class="t-label">🧩 Умножение как сложение
+        <span class="t-sub">Показывать 2 × 5 как 5 + 5 (для новичков)</span>
+      </span>
+      <button class="switch" id="beginnerToggle" role="switch" aria-checked="false" aria-label="Умножение как сложение"></button>
+    </div>
+    <div class="toggle-row">
       <span class="t-label">📝 Записать в столбик
         <span class="t-sub">Пример как на бумаге, стопкой</span>
       </span>
@@ -270,6 +278,7 @@
     </div>
     <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
     <div class="question" id="question">2 × 3</div>
+    <div class="hint-line hidden" id="hintLine"></div>
     <input type="number" class="answer-input" id="answerInput" placeholder="?" inputmode="numeric" autocomplete="off">
     <div class="feedback" id="feedback"></div>
     <div class="row-btns">
@@ -324,6 +333,7 @@
   let op = 'mul';         // выбранное действие
   let range = 10;         // диапазон чисел: 10, 100 или 1000
   let column = false;     // записывать пример «в столбик»
+  let beginner = false;   // показывать умножение как сложение
   let selected = [];
   let total = 10;
   let danger = false;
@@ -409,6 +419,14 @@
     numberSection.classList.toggle('hidden', !small);
     rngHint.classList.toggle('hidden', small);
     rngHint.textContent = `🎲 Числа будут случайными до ${range}`;
+  });
+
+  // ---------- Умножение как сложение (для новичков) ----------
+  const beginnerToggle = document.getElementById('beginnerToggle');
+  beginnerToggle.addEventListener('click', () => {
+    beginner = !beginner;
+    beginnerToggle.classList.toggle('on', beginner);
+    beginnerToggle.setAttribute('aria-checked', beginner);
   });
 
   // ---------- Запись «в столбик» ----------
@@ -562,12 +580,24 @@
     </div>`;
   }
 
+  // Подсказка для новичков: умножение как повторное сложение (2 × 5 → 5 + 5)
+  function showHint(q) {
+    hintLine.classList.add('hidden');
+    if (!beginner || op !== 'mul') return;
+    const count = Math.min(q.a, q.b);   // сколько раз складываем
+    const big = Math.max(q.a, q.b);     // что складываем
+    if (count < 2 || count > 12) return; // слишком мало/много слагаемых — не показываем
+    hintLine.innerHTML = 'это как  <b>' + Array(count).fill(big).join(' + ') + '</b>';
+    hintLine.classList.remove('hidden');
+  }
+
   // ---------- Элементы тренировки ----------
   const qNum = document.getElementById('qNum');
   const qTotal = document.getElementById('qTotal');
   const scoreNow = document.getElementById('scoreNow');
   const timerEl = document.getElementById('timer');
   const questionEl = document.getElementById('question');
+  const hintLine = document.getElementById('hintLine');
   const answerInput = document.getElementById('answerInput');
   const feedback = document.getElementById('feedback');
   const progressFill = document.getElementById('progressFill');
@@ -591,6 +621,7 @@
     qNum.textContent = current + 1;
     if (column) questionEl.innerHTML = columnHTML(q);
     else questionEl.textContent = q.text;
+    showHint(q);
     answerInput.value = '';
     answerInput.disabled = false;
     feedback.textContent = '';
