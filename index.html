@@ -128,6 +128,9 @@
   .question { text-align: center; font-size: 48px; font-weight: 800; margin: 6px 0 14px; font-variant-numeric: tabular-nums; }
   .hint-line { text-align: center; color: var(--muted); font-size: 16px; font-weight: 600; margin: 0 0 16px; min-height: 20px; font-variant-numeric: tabular-nums; text-wrap: balance; }
   .hint-line b { color: var(--violet-2); }
+  .blank { display: inline-block; min-width: 40px; padding: 0 8px; border-bottom: 4px solid var(--violet-2); border-radius: 2px; color: var(--violet-2); }
+  .q-sign { color: var(--violet-2); margin: 0 4px; }
+  .q-eq { color: var(--muted); margin: 0 6px; }
   .answer-input {
     width: 100%; padding: 18px; font: inherit; font-size: 30px; font-weight: 700; text-align: center;
     border-radius: 16px; border: 2px solid var(--line); background: rgba(0,0,0,.25);
@@ -255,6 +258,12 @@
       <button class="switch" id="columnToggle" role="switch" aria-checked="false" aria-label="Записать в столбик"></button>
     </div>
     <div class="toggle-row">
+      <span class="t-label">🔍 Найди пропущенное
+        <span class="t-sub">Спрятать одно число: 2 × ? = 10</span>
+      </span>
+      <button class="switch" id="missingToggle" role="switch" aria-checked="false" aria-label="Найди пропущенное"></button>
+    </div>
+    <div class="toggle-row">
       <span class="t-label">🔥 Опасный режим
         <span class="t-sub">Таймер на каждый вопрос + бонус за скорость</span>
       </span>
@@ -334,6 +343,7 @@
   let range = 10;         // диапазон чисел: 10, 100 или 1000
   let column = false;     // записывать пример «в столбик»
   let beginner = false;   // показывать умножение как сложение
+  let missing = false;    // спрятать одно число (найди пропущенное)
   let selected = [];
   let total = 10;
   let danger = false;
@@ -435,6 +445,14 @@
     column = !column;
     columnToggle.classList.toggle('on', column);
     columnToggle.setAttribute('aria-checked', column);
+  });
+
+  // ---------- Найди пропущенное ----------
+  const missingToggle = document.getElementById('missingToggle');
+  missingToggle.addEventListener('click', () => {
+    missing = !missing;
+    missingToggle.classList.toggle('on', missing);
+    missingToggle.setAttribute('aria-checked', missing);
   });
 
   // ---------- Опасный режим ----------
@@ -561,7 +579,25 @@
 
   function buildQuestions() {
     questions = [];
-    for (let i = 0; i < total; i++) questions.push(makeProblem());
+    for (let i = 0; i < total; i++) {
+      const q = makeProblem();
+      q.hide = rand(0, 1);   // какое число прятать в режиме «найди пропущенное»: 0 — первое, 1 — второе
+      questions.push(q);
+    }
+  }
+
+  // Что игрок должен ввести: в обычном режиме — результат, в «найди пропущенное» — спрятанное число
+  function expected(q) {
+    if (!missing) return q.answer;
+    return q.hide === 0 ? q.a : q.b;
+  }
+
+  // Пример с пропуском: 2 × ? = 10  (спрятано одно из чисел, показан результат)
+  function missingHTML(q) {
+    const box = '<span class="blank">?</span>';
+    const A = q.hide === 0 ? box : q.a;
+    const B = q.hide === 1 ? box : q.b;
+    return `${A}<span class="q-sign">${SIGN[op]}</span>${B}<span class="q-eq">=</span>${q.answer}`;
   }
 
   // Пример «в столбик»: сложение/вычитание/умножение — стопкой, деление — уголком.
@@ -583,7 +619,7 @@
   // Подсказка для новичков: умножение как повторное сложение (2 × 5 → 5 + 5)
   function showHint(q) {
     hintLine.classList.add('hidden');
-    if (!beginner || op !== 'mul') return;
+    if (!beginner || op !== 'mul' || missing) return;
     const count = Math.min(q.a, q.b);   // сколько раз складываем
     const big = Math.max(q.a, q.b);     // что складываем
     if (count < 2 || count > 12) return; // слишком мало/много слагаемых — не показываем
@@ -619,7 +655,8 @@
   function renderQuestion() {
     const q = questions[current];
     qNum.textContent = current + 1;
-    if (column) questionEl.innerHTML = columnHTML(q);
+    if (missing) questionEl.innerHTML = missingHTML(q);
+    else if (column) questionEl.innerHTML = columnHTML(q);
     else questionEl.textContent = q.text;
     showHint(q);
     answerInput.value = '';
@@ -674,7 +711,7 @@
     stopTimer();
     const user = parseInt(val, 10);
 
-    if (user === q.answer) {
+    if (user === expected(q)) {
       const gained = danger ? 10 + timeLeft : 10;
       score += gained;
       scoreNow.textContent = score;
