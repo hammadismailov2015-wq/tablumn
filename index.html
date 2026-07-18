@@ -343,6 +343,7 @@
     div: { emoji: '➗', name: 'Деление',    make: (n, k) => ({ a: n * k, b: n, answer: k,     text: `${n * k} ÷ ${n}` }) },
     add: { emoji: '➕', name: 'Сложение',   make: (n, k) => ({ a: n,     b: k, answer: n + k, text: `${n} + ${k}` }) },
     sub: { emoji: '➖', name: 'Вычитание',  make: (n, k) => ({ a: n + k, b: n, answer: k,     text: `${n + k} − ${n}` }) },
+    mix:  { emoji: '🎲', name: 'Всё сразу',  make: () => ({}) },  // строит makeMixed()
     task: { emoji: '📖', name: 'Задачи',    make: () => ({}) },  // строит makeTask(), не через n/k
   };
   const SIGN = { mul: '×', div: '÷', add: '+', sub: '−' };
@@ -368,7 +369,7 @@
   const opsEl = document.getElementById('ops');
   Object.keys(OPS).forEach((key, idx) => {
     const b = document.createElement('button');
-    b.className = 'op-btn' + (idx === 0 ? ' active' : '') + (key === 'task' ? ' wide' : '');
+    b.className = 'op-btn' + (idx === 0 ? ' active' : '') + (key === 'task' || key === 'mix' ? ' wide' : '');
     b.dataset.op = key;
     b.innerHTML = `<span class="op-emoji">${OPS[key].emoji}</span> ${OPS[key].name}`;
     opsEl.appendChild(b);
@@ -390,9 +391,9 @@
     document.querySelectorAll('.task-only').forEach(el => el.classList.toggle('hidden', !isTask));
     if (!isTask) {
       // выбор конкретных чисел нужен только для «до 10» И ровно 2 чисел в примере
-      const pickMode = (range === 10 && terms === 2);
+      const pickMode = (op !== 'mix' && range === 10 && terms === 2);
       numberSection.classList.toggle('hidden', !pickMode);
-      rngHint.classList.toggle('hidden', !(range !== 10 && terms === 2));
+      rngHint.classList.toggle('hidden', !(op !== 'mix' && range !== 10 && terms === 2));
     }
   }
 
@@ -705,9 +706,44 @@
     return chainResult([first, ...divs], result);
   }
 
-  // Один пример. Задачи и цепочки — отдельно; «до 10» — по выбранным числам; больше — случайные.
+  // Смешанный пример со всеми действиями: 2 + 3 × 5 ÷ 2 − 7 (с учётом приоритета)
+  function divisorsOf(v) {
+    const ds = [];
+    for (let d = 2; d <= Math.min(12, v); d++) if (v % d === 0) ds.push(d);
+    return ds;
+  }
+  function makeMixed() {
+    const N = Math.max(3, terms);   // минимум 3 числа, чтобы было интересно
+    for (let attempt = 0; attempt < 40; attempt++) {
+      const tokens = [];
+      let committed = 0;            // сумма уже закрытых членов (+/−)
+      let termVal = rand(2, 9);     // значение текущего множительного члена (× ÷)
+      let termSign = 1;             // знак текущего члена
+      tokens.push(termVal);
+      for (let i = 1; i < N; i++) {
+        let opc = pick(['+', '−', '×', '÷']);
+        if (opc === '÷') {
+          const ds = divisorsOf(termVal);   // делим только на то, что делится нацело
+          if (ds.length) { const d = pick(ds); termVal /= d; tokens.push('÷', d); continue; }
+          opc = '×';                          // нечем делить — умножаем
+        }
+        if (opc === '×') { const m = rand(2, 6); termVal *= m; tokens.push('×', m); continue; }
+        committed += termSign * termVal;      // + или − : закрываем текущий член
+        const n = rand(2, 9);
+        termSign = (opc === '−') ? -1 : 1;
+        termVal = n;
+        tokens.push(opc, n);
+      }
+      committed += termSign * termVal;        // закрыть последний член
+      if (committed >= 0) return { a: 0, b: 0, answer: committed, multi: true, text: tokens.join(' ') };
+    }
+    return { a: 0, b: 0, answer: 5, multi: true, text: '2 + 3' };   // запасной вариант
+  }
+
+  // Один пример. Задачи/смешанные/цепочки — отдельно; «до 10» — по выбранным числам; больше — случайные.
   function makeProblem() {
     if (op === 'task') return makeTask();
+    if (op === 'mix') return makeMixed();
     if (terms > 2) return makeChain();
     if (range === 10) {
       const n = selected[rand(0, selected.length - 1)];
@@ -793,7 +829,7 @@
 
   function startTraining() {
     selected = [...document.querySelectorAll('.pick-num.active')].map(b => parseInt(b.dataset.val, 10));
-    if (op !== 'task' && terms === 2 && range === 10 && selected.length === 0) { alert('Выбери хотя бы одно число!'); return; }
+    if (op !== 'task' && op !== 'mix' && terms === 2 && range === 10 && selected.length === 0) { alert('Выбери хотя бы одно число!'); return; }
     buildQuestions();
     current = 0; score = 0;
     qTotal.textContent = total;
