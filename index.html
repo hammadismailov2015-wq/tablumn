@@ -14,6 +14,10 @@
     --ink: #f0f0ff;
     --muted: #9a9ac8;
     --line: #34346a;
+    --fill: rgba(255,255,255,.03);
+    --fill2: rgba(255,255,255,.05);
+    --sunken: rgba(0,0,0,.28);
+    --panel: rgba(0,0,0,.16);
     --violet: #7c6cf0;
     --violet-2: #9a8bff;
     --mint: #34d399;
@@ -58,20 +62,20 @@
   .ops { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; margin-bottom: 16px; }
   .op-btn {
     display: flex; align-items: center; justify-content: center; gap: 8px;
-    padding: 14px; border: 1px solid var(--line); background: rgba(255,255,255,.03);
+    padding: 14px; border: 1px solid var(--line); background: var(--fill);
     color: var(--ink); border-radius: 14px; font: inherit; font-size: 15px; font-weight: 700;
     cursor: pointer; transition: transform .12s, background .15s, border-color .15s;
   }
   .op-btn:hover { border-color: var(--violet); transform: translateY(-2px); }
   .op-btn.active { background: linear-gradient(180deg, var(--violet-2), var(--violet)); border-color: transparent; color: #fff; box-shadow: 0 8px 20px rgba(124,108,240,.45); }
   .op-emoji { font-size: 18px; }
-  .section-box { border: 1px solid var(--line); border-radius: 16px; padding: 14px 12px; margin-bottom: 12px; background: rgba(0,0,0,.14); }
+  .section-box { border: 1px solid var(--line); border-radius: 16px; padding: 14px 12px; margin-bottom: 12px; background: var(--panel); }
   .box-title { font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); text-align: center; margin-bottom: 10px; }
   .section-box .ops { margin-bottom: 0; }
 
   .picker { display: grid; grid-template-columns: repeat(5, 1fr); gap: 9px; margin-bottom: 10px; }
   .pick-btn {
-    padding: 14px 0; border: 1px solid var(--line); background: rgba(255,255,255,.03);
+    padding: 14px 0; border: 1px solid var(--line); background: var(--fill);
     color: var(--ink); border-radius: 14px; font: inherit; font-size: 18px; font-weight: 700;
     cursor: pointer; transition: transform .12s, background .15s, border-color .15s;
     font-variant-numeric: tabular-nums;
@@ -86,7 +90,7 @@
 
   .toggle-row {
     display: flex; align-items: center; justify-content: space-between; gap: 12px;
-    background: rgba(0,0,0,.2); border: 1px solid var(--line); border-radius: 14px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
     padding: 12px 14px; margin-bottom: 16px;
   }
   .t-label { font-weight: 700; font-size: 14px; }
@@ -126,7 +130,7 @@
   .timer { font-weight: 800; font-size: 16px; color: var(--mint); font-variant-numeric: tabular-nums; }
   .timer.low { color: var(--coral); }
   .timer.hidden { display: none; }
-  .progress-bar { height: 10px; background: rgba(0,0,0,.3); border-radius: 10px; overflow: hidden; margin-bottom: 20px; }
+  .progress-bar { height: 10px; background: var(--sunken); border-radius: 10px; overflow: hidden; margin-bottom: 20px; }
   .progress-fill { height: 100%; width: 0; background: linear-gradient(90deg, var(--violet), var(--mint)); transition: width .35s ease; }
   .question { text-align: center; font-size: 48px; font-weight: 800; margin: 6px 0 14px; font-variant-numeric: tabular-nums; }
   .hint-line { text-align: center; color: var(--muted); font-size: 16px; font-weight: 600; margin: 0 0 16px; min-height: 20px; font-variant-numeric: tabular-nums; text-wrap: balance; }
@@ -140,7 +144,7 @@
   .terms { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; margin-bottom: 16px; }
   .answer-input {
     width: 100%; padding: 18px; font: inherit; font-size: 30px; font-weight: 700; text-align: center;
-    border-radius: 16px; border: 2px solid var(--line); background: rgba(0,0,0,.25);
+    border-radius: 16px; border: 2px solid var(--line); background: var(--sunken);
     color: var(--ink); outline: none; transition: border-color .15s; -moz-appearance: textfield;
   }
   .answer-input::-webkit-outer-spin-button, .answer-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
@@ -155,7 +159,7 @@
   .btn:hover { transform: translateY(-2px); }
   .btn-primary { background: linear-gradient(180deg, var(--violet-2), var(--violet)); color: #fff; box-shadow: 0 10px 22px rgba(124,108,240,.4); }
   .btn-next { background: linear-gradient(180deg, var(--green-2), var(--mint)); color: #06281c; box-shadow: 0 10px 24px rgba(52,211,153,.45); }
-  .btn-ghost { background: rgba(255,255,255,.04); color: var(--ink); border: 1px solid var(--line); }
+  .btn-ghost { background: var(--fill2); color: var(--ink); border: 1px solid var(--line); }
   .hidden { display: none; }
   .result { text-align: center; }
   .result .emoji { font-size: 60px; margin-bottom: 6px; }
@@ -180,7 +184,7 @@
 
   /* Вторичная кнопка (Посмотреть таблицы) */
   .secondary-btn {
-    width: 100%; padding: 14px; margin-top: 10px; background: rgba(255,255,255,.04);
+    width: 100%; padding: 14px; margin-top: 10px; background: var(--fill2);
     color: var(--ink); border: 1px solid var(--line); border-radius: 16px; font: inherit;
     font-size: 15px; font-weight: 700; cursor: pointer; transition: border-color .15s, transform .12s;
   }
@@ -190,7 +194,7 @@
   .tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-bottom: 14px; }
   .tab {
     display: flex; align-items: center; justify-content: center; gap: 6px; padding: 12px 6px;
-    border: 1px solid var(--line); background: rgba(255,255,255,.03); color: var(--ink);
+    border: 1px solid var(--line); background: var(--fill); color: var(--ink);
     border-radius: 14px; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
     transition: transform .12s, background .15s, border-color .15s;
   }
@@ -201,7 +205,7 @@
   .tlist { display: flex; flex-direction: column; gap: 8px; margin: 14px 0 18px; }
   .trow {
     display: flex; justify-content: space-between; align-items: center;
-    background: rgba(255,255,255,.03); border: 1px solid var(--line); border-radius: 12px;
+    background: var(--fill); border: 1px solid var(--line); border-radius: 12px;
     padding: 12px 16px; font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums;
   }
   .trow .res { color: var(--mint); }
@@ -209,7 +213,7 @@
   .pgrid { display: grid; grid-template-columns: repeat(11, 1fr); gap: 3px; min-width: 380px; }
   .pcell {
     aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
-    border-radius: 6px; font-size: 13px; font-weight: 700; background: rgba(255,255,255,.03);
+    border-radius: 6px; font-size: 13px; font-weight: 700; background: var(--fill);
     font-variant-numeric: tabular-nums;
   }
   .pcell.head { background: var(--violet); color: #fff; cursor: pointer; }
@@ -283,10 +287,18 @@
       </span>
       <button class="switch" id="dangerToggle" role="switch" aria-checked="false" aria-label="Опасный режим"></button>
     </div>
-    <div class="label">🎨 Фон</div>
-    <div class="themes" id="themes"></div>
-    <div class="label">🔲 Карточка</div>
-    <div class="themes" id="cards"></div>
+    <div class="toggle-row">
+      <span class="t-label">☀️ Светлая тема
+        <span class="t-sub">Светлый фон вместо тёмного</span>
+      </span>
+      <button class="switch" id="lightToggle" role="switch" aria-checked="false" aria-label="Светлая тема"></button>
+    </div>
+    <div id="colorPickers">
+      <div class="label">🎨 Фон</div>
+      <div class="themes" id="themes"></div>
+      <div class="label">🔲 Карточка</div>
+      <div class="themes" id="cards"></div>
+    </div>
     <div class="record-line" id="recordLine">🏆 Рекорд: 0 очков</div>
     <button class="start-btn" id="startBtn">Начать тренировку →</button>
     <button class="secondary-btn" id="openTables">📖 Посмотреть таблицы</button>
@@ -561,6 +573,7 @@
     rose:   { bg: '#2a1020', g1: '#5a1f40', g2: '#4a1f3a', dot: '#ff6b9d' },
   };
   const THEME_KEY = 'trainer-theme';
+  let currentTheme = localStorage.getItem(THEME_KEY) || 'indigo';
 
   const themesEl = document.getElementById('themes');
   Object.keys(THEMES).forEach(key => {
@@ -574,13 +587,10 @@
   });
 
   function applyTheme(key) {
-    const t = THEMES[key] || THEMES.indigo;
-    const root = document.documentElement.style;
-    root.setProperty('--bg', t.bg);
-    root.setProperty('--glow1', t.g1);
-    root.setProperty('--glow2', t.g2);
+    currentTheme = key;
     localStorage.setItem(THEME_KEY, key);
     [...themesEl.children].forEach(s => s.classList.toggle('active', s.dataset.theme === key));
+    applyAppearance();
   }
 
   themesEl.addEventListener('click', (e) => {
@@ -588,7 +598,7 @@
     if (b) applyTheme(b.dataset.theme);
   });
 
-  applyTheme(localStorage.getItem(THEME_KEY) || 'indigo'); // применяем сохранённый фон при загрузке
+  [...themesEl.children].forEach(s => s.classList.toggle('active', s.dataset.theme === currentTheme));
 
   // ---------- Выбор цвета карточки (отдельно от фона) ----------
   const CARDS = {
@@ -600,6 +610,7 @@
     berry:  { c1: '#3a2230', c2: '#2c1a25', dot: '#4a2c3c' },
   };
   const CARD_KEY = 'trainer-card';
+  let currentCard = localStorage.getItem(CARD_KEY) || 'night';
 
   const cardsEl = document.getElementById('cards');
   Object.keys(CARDS).forEach(key => {
@@ -613,12 +624,10 @@
   });
 
   function applyCard(key) {
-    const c = CARDS[key] || CARDS.night;
-    const root = document.documentElement.style;
-    root.setProperty('--card', c.c1);
-    root.setProperty('--bg2', c.c2);
+    currentCard = key;
     localStorage.setItem(CARD_KEY, key);
     [...cardsEl.children].forEach(s => s.classList.toggle('active', s.dataset.card === key));
+    applyAppearance();
   }
 
   cardsEl.addEventListener('click', (e) => {
@@ -626,7 +635,55 @@
     if (b) applyCard(b.dataset.card);
   });
 
-  applyCard(localStorage.getItem(CARD_KEY) || 'night');
+  [...cardsEl.children].forEach(s => s.classList.toggle('active', s.dataset.card === currentCard));
+
+  // ---------- Светлая / тёмная тема ----------
+  const LIGHT_KEY = 'trainer-light';
+  let light = localStorage.getItem(LIGHT_KEY) === '1';
+  const LIGHT = {
+    bg: '#e9ecf5', glow1: '#d7ddf5', glow2: '#e6dcf3',
+    card: '#ffffff', bg2: '#f2f4fb',
+    ink: '#1c1c2e', muted: '#63637e', line: '#dce0ec',
+    fill: 'rgba(0,0,0,.04)', fill2: 'rgba(0,0,0,.06)',
+    sunken: 'rgba(0,0,0,.07)', panel: 'rgba(0,0,0,.035)',
+    gold: '#b07d00', mint: '#0f9d6b', coral: '#d63a3a',   // темнее, чтобы читались на белом
+  };
+  const DARK_FIXED = {
+    ink: '#f0f0ff', muted: '#9a9ac8', line: '#34346a',
+    fill: 'rgba(255,255,255,.03)', fill2: 'rgba(255,255,255,.05)',
+    sunken: 'rgba(0,0,0,.28)', panel: 'rgba(0,0,0,.16)',
+    gold: '#ffcb5c', mint: '#34d399', coral: '#ff6b6b',
+  };
+  // Собирает весь внешний вид: светлая тема ИЛИ выбранные тёмные цвета
+  function applyAppearance() {
+    const s = document.documentElement.style;
+    if (light) {
+      for (const [k, v] of Object.entries(LIGHT)) s.setProperty('--' + k, v);
+    } else {
+      const t = THEMES[currentTheme] || THEMES.indigo;
+      s.setProperty('--bg', t.bg); s.setProperty('--glow1', t.g1); s.setProperty('--glow2', t.g2);
+      const c = CARDS[currentCard] || CARDS.night;
+      s.setProperty('--card', c.c1); s.setProperty('--bg2', c.c2);
+      for (const [k, v] of Object.entries(DARK_FIXED)) s.setProperty('--' + k, v);
+    }
+  }
+
+  const colorPickers = document.getElementById('colorPickers');
+  const lightToggle = document.getElementById('lightToggle');
+  function refreshLightUI() {
+    lightToggle.classList.toggle('on', light);
+    lightToggle.setAttribute('aria-checked', light);
+    colorPickers.classList.toggle('hidden', light);  // цветные кружки — только для тёмной темы
+  }
+  lightToggle.addEventListener('click', () => {
+    light = !light;
+    localStorage.setItem(LIGHT_KEY, light ? '1' : '0');
+    refreshLightUI();
+    applyAppearance();
+  });
+
+  refreshLightUI();
+  applyAppearance();   // применяем весь сохранённый внешний вид при загрузке
 
   // ---------- Рекорд (свой для каждого действия) ----------
   function recordKey() { return 'trainer-record-' + op; }
