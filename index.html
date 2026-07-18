@@ -6,192 +6,127 @@
 <title>Тренажёр таблицы умножения</title>
 <style>
   :root {
-    --bg: #0f172a;
-    --card: #1e293b;
-    --accent: #6366f1;
-    --accent-hover: #818cf8;
-    --text: #f1f5f9;
-    --muted: #94a3b8;
-    --good: #22c55e;
-    --bad: #ef4444;
-    --border: #334155;
+    --bg: #14142b;
+    --bg2: #1c1c3f;
+    --card: #232349;
+    --ink: #f0f0ff;
+    --muted: #9a9ac8;
+    --line: #34346a;
+    --violet: #7c6cf0;
+    --violet-2: #9a8bff;
+    --mint: #34d399;
+    --coral: #ff6b6b;
+    --gold: #ffcb5c;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    background: linear-gradient(160deg, #0f172a, #1e1b4b);
-    color: var(--text);
+    font-family: ui-rounded, "Segoe UI Rounded", system-ui, -apple-system, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 15% -10%, #2a2a63 0%, transparent 55%),
+      radial-gradient(1000px 500px at 110% 110%, #3a2a63 0%, transparent 50%),
+      var(--bg);
+    color: var(--ink);
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 16px;
+    padding: 20px;
   }
   .app {
     width: 100%;
-    max-width: 460px;
-    background: var(--card);
-    border-radius: 20px;
-    padding: 28px 24px;
-    box-shadow: 0 20px 60px rgba(0,0,0,.4);
-    border: 1px solid var(--border);
+    max-width: 480px;
+    background: linear-gradient(180deg, var(--card), var(--bg2));
+    border-radius: 26px;
+    padding: 30px 26px;
+    box-shadow: 0 30px 80px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.06);
+    border: 1px solid var(--line);
   }
-  h1 {
-    font-size: 22px;
-    text-align: center;
-    margin-bottom: 6px;
+  h1 { font-size: 24px; text-align: center; letter-spacing: .3px; text-wrap: balance; }
+  .subtitle { text-align: center; color: var(--muted); font-size: 14px; margin: 8px 0 22px; }
+  .label {
+    font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--muted); text-align: center; margin: 4px 0 12px;
   }
-  .subtitle {
-    text-align: center;
-    color: var(--muted);
-    font-size: 14px;
-    margin-bottom: 22px;
-  }
-  .section-label {
-    font-size: 13px;
-    color: var(--muted);
-    margin-bottom: 10px;
-    text-align: center;
-  }
-  .picker {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 8px;
-    margin-bottom: 14px;
-  }
+  .picker { display: grid; grid-template-columns: repeat(5, 1fr); gap: 9px; margin-bottom: 10px; }
   .pick-btn {
-    padding: 12px 0;
-    border: 1px solid var(--border);
-    background: #0f172a;
-    color: var(--text);
-    border-radius: 12px;
-    font-size: 17px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: .15s;
+    padding: 14px 0; border: 1px solid var(--line); background: rgba(255,255,255,.03);
+    color: var(--ink); border-radius: 14px; font: inherit; font-size: 18px; font-weight: 700;
+    cursor: pointer; transition: transform .12s, background .15s, border-color .15s;
+    font-variant-numeric: tabular-nums;
   }
-  .pick-btn:hover { border-color: var(--accent); }
+  .pick-btn:hover { border-color: var(--violet); transform: translateY(-2px); }
   .pick-btn.active {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #fff;
+    background: linear-gradient(180deg, var(--violet-2), var(--violet));
+    border-color: transparent; color: #fff; box-shadow: 0 8px 20px rgba(124,108,240,.45);
   }
-  .pick-btn.all { grid-column: span 5; }
+  .pick-btn.all { grid-column: span 5; letter-spacing: .3px; margin-bottom: 4px; }
+  .counts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-bottom: 16px; }
+  .record-line {
+    text-align: center; color: var(--gold); font-weight: 700; font-size: 15px; margin: 6px 0 16px;
+  }
   .start-btn {
-    width: 100%;
-    padding: 14px;
-    margin-top: 6px;
-    background: var(--accent);
-    color: #fff;
-    border: none;
-    border-radius: 12px;
-    font-size: 16px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: .15s;
+    width: 100%; padding: 16px; margin-top: 4px;
+    background: linear-gradient(180deg, var(--violet-2), var(--violet)); color: #fff; border: none;
+    border-radius: 16px; font: inherit; font-size: 17px; font-weight: 800; cursor: pointer;
+    box-shadow: 0 12px 26px rgba(124,108,240,.4); transition: transform .12s, filter .15s;
   }
-  .start-btn:hover { background: var(--accent-hover); }
+  .start-btn:hover { filter: brightness(1.07); transform: translateY(-2px); }
+  .start-btn:active { transform: translateY(0); }
 
-  /* Тренировка */
-  .stats {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 18px;
-    font-size: 14px;
-    color: var(--muted);
-  }
-  .stats b { color: var(--text); }
-  .question {
-    text-align: center;
-    font-size: 44px;
-    font-weight: 800;
-    margin: 14px 0 20px;
-    letter-spacing: 1px;
-  }
+  .stats { display: flex; justify-content: space-between; align-items: center; font-size: 14px; color: var(--muted); margin-bottom: 12px; }
+  .stats b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .timer { font-weight: 800; font-size: 16px; color: var(--mint); font-variant-numeric: tabular-nums; }
+  .timer.low { color: var(--coral); }
+  .progress-bar { height: 10px; background: rgba(0,0,0,.3); border-radius: 10px; overflow: hidden; margin-bottom: 20px; }
+  .progress-fill { height: 100%; width: 0; background: linear-gradient(90deg, var(--violet), var(--mint)); transition: width .35s ease; }
+  .question { text-align: center; font-size: 52px; font-weight: 800; margin: 6px 0 22px; font-variant-numeric: tabular-nums; }
   .answer-input {
-    width: 100%;
-    padding: 16px;
-    font-size: 26px;
-    text-align: center;
-    border-radius: 12px;
-    border: 2px solid var(--border);
-    background: #0f172a;
-    color: var(--text);
-    outline: none;
-    transition: .15s;
-    -moz-appearance: textfield;
+    width: 100%; padding: 18px; font: inherit; font-size: 30px; font-weight: 700; text-align: center;
+    border-radius: 16px; border: 2px solid var(--line); background: rgba(0,0,0,.25);
+    color: var(--ink); outline: none; transition: border-color .15s; -moz-appearance: textfield;
   }
-  .answer-input::-webkit-outer-spin-button,
-  .answer-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-  .answer-input:focus { border-color: var(--accent); }
-  .answer-input.shake { animation: shake .4s; border-color: var(--bad); }
-  @keyframes shake {
-    0%,100% { transform: translateX(0); }
-    20%,60% { transform: translateX(-8px); }
-    40%,80% { transform: translateX(8px); }
-  }
-  .feedback {
-    text-align: center;
-    min-height: 24px;
-    margin: 14px 0;
-    font-size: 15px;
-    font-weight: 600;
-  }
-  .feedback.good { color: var(--good); }
-  .feedback.bad { color: var(--bad); }
-  .row-btns { display: flex; gap: 10px; }
-  .btn {
-    flex: 1;
-    padding: 13px;
-    border-radius: 12px;
-    border: none;
-    font-size: 15px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: .15s;
-  }
-  .btn-primary { background: var(--accent); color: #fff; }
-  .btn-primary:hover { background: var(--accent-hover); }
-  .btn-ghost { background: #0f172a; color: var(--text); border: 1px solid var(--border); }
-  .btn-ghost:hover { border-color: var(--accent); }
+  .answer-input::-webkit-outer-spin-button, .answer-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .answer-input:focus { border-color: var(--violet); }
+  .answer-input.shake { animation: shake .4s; border-color: var(--coral); }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-9px)} 40%,80%{transform:translateX(9px)} }
+  @media (prefers-reduced-motion: reduce) { .answer-input.shake { animation: none; } * { transition: none !important; } }
+  .feedback { text-align: center; min-height: 26px; margin: 16px 0; font-size: 16px; font-weight: 700; }
+  .feedback.good { color: var(--mint); }
+  .feedback.bad { color: var(--coral); }
+  .row-btns { display: flex; gap: 12px; }
+  .btn { flex: 1; padding: 15px; border-radius: 16px; border: none; font: inherit; font-size: 15px; font-weight: 800; cursor: pointer; transition: transform .12s, filter .15s; }
+  .btn:hover { transform: translateY(-2px); }
+  .btn-primary { background: linear-gradient(180deg, var(--violet-2), var(--violet)); color: #fff; box-shadow: 0 10px 22px rgba(124,108,240,.4); }
+  .btn-ghost { background: rgba(255,255,255,.04); color: var(--ink); border: 1px solid var(--line); }
   .hidden { display: none; }
-  .progress-bar {
-    height: 8px;
-    background: #0f172a;
-    border-radius: 10px;
-    overflow: hidden;
-    margin-bottom: 18px;
-  }
-  .progress-fill {
-    height: 100%;
-    width: 0;
-    background: var(--accent);
-    transition: width .3s;
-  }
-  /* Результат */
   .result { text-align: center; }
-  .result .score { font-size: 46px; font-weight: 800; margin: 10px 0; }
-  .result .emoji { font-size: 54px; margin-bottom: 8px; }
-  .result p { color: var(--muted); margin-bottom: 20px; }
+  .result .emoji { font-size: 60px; margin-bottom: 6px; }
+  .result .score { font-size: 50px; font-weight: 800; margin: 6px 0; font-variant-numeric: tabular-nums; }
+  .result .detail { color: var(--muted); margin-bottom: 6px; }
+  .result .record-new { color: var(--gold); font-weight: 800; margin-bottom: 20px; min-height: 22px; }
 </style>
 </head>
 <body>
 <div class="app">
 
-  <!-- Экран настройки -->
+  <!-- ЭКРАН НАСТРОЙКИ -->
   <div id="setup">
     <h1>✖️ Тренажёр таблицы умножения</h1>
-    <p class="subtitle">Выбери, на что умножать</p>
-    <div class="section-label">Множитель</div>
+    <p class="subtitle">Выбери одно или несколько чисел</p>
+    <div class="label">Множитель (можно несколько)</div>
     <div class="picker" id="picker"></div>
+    <div class="label">Сколько вопросов</div>
+    <div class="counts" id="counts"></div>
+    <div class="record-line" id="recordLine">🏆 Рекорд: 0 очков</div>
     <button class="start-btn" id="startBtn">Начать тренировку →</button>
   </div>
 
-  <!-- Экран тренировки -->
+  <!-- ЭКРАН ТРЕНИРОВКИ -->
   <div id="trainer" class="hidden">
     <div class="stats">
       <span>Вопрос <b id="qNum">1</b>/<b id="qTotal">10</b></span>
-      <span>Верно: <b id="correctCount">0</b></span>
+      <span>Очки: <b id="scoreNow">0</b></span>
+      <span class="timer" id="timer">⏱ 10</span>
     </div>
     <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
     <div class="question" id="question">2 × 3</div>
@@ -203,12 +138,13 @@
     </div>
   </div>
 
-  <!-- Экран результата -->
+  <!-- ЭКРАН РЕЗУЛЬТАТА -->
   <div id="result" class="hidden">
     <div class="result">
       <div class="emoji" id="resultEmoji">🎉</div>
-      <div class="score" id="resultScore">10/10</div>
-      <p id="resultText">Отлично!</p>
+      <div class="score" id="resultScore">0 очков</div>
+      <p class="detail" id="resultDetail">Верно 0 из 10</p>
+      <p class="record-new" id="recordNew"></p>
       <div class="row-btns">
         <button class="btn btn-ghost" id="menuBtn">В меню</button>
         <button class="btn btn-primary" id="againBtn">Ещё раз</button>
@@ -219,18 +155,25 @@
 </div>
 
 <script>
-  const TOTAL = 10;          // вопросов в тренировке
-  const MAX_FACTOR = 10;     // умножаем от 1 до 10
-  let selected = null;       // выбранный множитель или 'all'
-  let questions = [];
-  let current = 0;
-  let correct = 0;
+  // ====== НАСТРОЙКИ ИГРЫ (можно менять) ======
+  const MAX_FACTOR = 10;   // на что умножаем во второй части примера (1..10)
+  const PER_Q = 10;        // секунд на один вопрос
+  const RECORD_KEY = 'multi-trainer-record';  // имя ячейки памяти для рекорда
 
-  // --- Построение кнопок выбора ---
+  // ====== СОСТОЯНИЕ (то, что меняется по ходу игры) ======
+  let selected = [];   // выбранные множители, например [2, 5, 9]
+  let total = 10;      // сколько вопросов в раунде
+  let questions = [];  // список подготовленных примеров
+  let current = 0;     // номер текущего вопроса
+  let score = 0;       // набранные очки
+  let timeLeft = PER_Q;
+  let timerId = null;  // «ручка» таймера, чтобы уметь его остановить
+
+  // ---------- Кнопки выбора множителей ----------
   const picker = document.getElementById('picker');
   for (let i = 1; i <= 10; i++) {
     const b = document.createElement('button');
-    b.className = 'pick-btn';
+    b.className = 'pick-btn pick-num';
     b.textContent = i;
     b.dataset.val = i;
     picker.appendChild(b);
@@ -238,56 +181,76 @@
   const allBtn = document.createElement('button');
   allBtn.className = 'pick-btn all';
   allBtn.textContent = 'Все подряд 🎲';
-  allBtn.dataset.val = 'all';
   picker.appendChild(allBtn);
 
+  // Клик по числу — включаем/выключаем его (несколько сразу)
   picker.addEventListener('click', (e) => {
-    const btn = e.target.closest('.pick-btn');
-    if (!btn) return;
-    document.querySelectorAll('.pick-btn').forEach(x => x.classList.remove('active'));
-    btn.classList.add('active');
-    selected = btn.dataset.val;
+    const numBtn = e.target.closest('.pick-num');
+    if (numBtn) { numBtn.classList.toggle('active'); return; }
+    // Клик по «Все подряд» — включаем все числа
+    if (e.target.closest('.all')) {
+      document.querySelectorAll('.pick-num').forEach(b => b.classList.add('active'));
+    }
   });
 
-  // --- Экраны ---
+  // ---------- Кнопки количества вопросов ----------
+  const counts = document.getElementById('counts');
+  [5, 10, 20].forEach((n, idx) => {
+    const b = document.createElement('button');
+    b.className = 'pick-btn' + (idx === 1 ? ' active' : ''); // по умолчанию 10
+    b.textContent = n;
+    b.dataset.count = n;
+    counts.appendChild(b);
+  });
+  counts.addEventListener('click', (e) => {
+    const b = e.target.closest('.pick-btn');
+    if (!b) return;
+    document.querySelectorAll('#counts .pick-btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    total = parseInt(b.dataset.count, 10);
+  });
+
+  // ---------- Рекорд (память браузера) ----------
+  function getRecord() { return parseInt(localStorage.getItem(RECORD_KEY) || '0', 10); }
+  function showRecord() { document.getElementById('recordLine').textContent = `🏆 Рекорд: ${getRecord()} очков`; }
+  showRecord();
+
+  // ---------- Переключение экранов ----------
   const setupEl = document.getElementById('setup');
   const trainerEl = document.getElementById('trainer');
   const resultEl = document.getElementById('result');
+  function show(el) { [setupEl, trainerEl, resultEl].forEach(x => x.classList.add('hidden')); el.classList.remove('hidden'); }
+  function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 
-  function show(el) {
-    [setupEl, trainerEl, resultEl].forEach(x => x.classList.add('hidden'));
-    el.classList.remove('hidden');
-  }
-
-  function rand(min, max) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-  }
-
+  // ---------- Подготовка примеров ----------
   function buildQuestions() {
     questions = [];
-    for (let i = 0; i < TOTAL; i++) {
-      const a = selected === 'all' ? rand(1, MAX_FACTOR) : parseInt(selected, 10);
+    for (let i = 0; i < total; i++) {
+      // берём случайный множитель ИЗ выбранных игроком
+      const a = selected[rand(0, selected.length - 1)];
       const b = rand(1, MAX_FACTOR);
       questions.push({ a, b, answer: a * b });
     }
   }
 
-  // --- Тренировка ---
+  // ---------- Элементы экрана тренировки ----------
   const qNum = document.getElementById('qNum');
   const qTotal = document.getElementById('qTotal');
-  const correctCount = document.getElementById('correctCount');
+  const scoreNow = document.getElementById('scoreNow');
+  const timerEl = document.getElementById('timer');
   const questionEl = document.getElementById('question');
   const answerInput = document.getElementById('answerInput');
   const feedback = document.getElementById('feedback');
   const progressFill = document.getElementById('progressFill');
 
   function startTraining() {
-    if (!selected) { alert('Сначала выбери множитель!'); return; }
+    // собираем выбранные числа
+    selected = [...document.querySelectorAll('.pick-num.active')].map(b => parseInt(b.dataset.val, 10));
+    if (selected.length === 0) { alert('Выбери хотя бы одно число!'); return; }
     buildQuestions();
-    current = 0;
-    correct = 0;
-    qTotal.textContent = TOTAL;
-    correctCount.textContent = 0;
+    current = 0; score = 0;
+    qTotal.textContent = total;
+    scoreNow.textContent = 0;
     show(trainerEl);
     renderQuestion();
   }
@@ -300,20 +263,48 @@
     answerInput.disabled = false;
     feedback.textContent = '';
     feedback.className = 'feedback';
-    progressFill.style.width = (current / TOTAL * 100) + '%';
+    progressFill.style.width = (current / total * 100) + '%';
     answerInput.focus();
+    startTimer();
+  }
+
+  // ---------- Таймер ----------
+  function startTimer() {
+    timeLeft = PER_Q;
+    updateTimerUI();
+    timerId = setInterval(() => {
+      timeLeft--;
+      updateTimerUI();
+      if (timeLeft <= 0) { stopTimer(); timeUp(); }
+    }, 1000);
+  }
+  function stopTimer() { clearInterval(timerId); timerId = null; }
+  function updateTimerUI() {
+    timerEl.textContent = '⏱ ' + timeLeft;
+    timerEl.classList.toggle('low', timeLeft <= 3);
+  }
+
+  function timeUp() {
+    const q = questions[current];
+    feedback.textContent = `⏱ Время вышло! ${q.a} × ${q.b} = ${q.answer}`;
+    feedback.className = 'feedback bad';
+    answerInput.disabled = true;
+    nextSoon();
   }
 
   function checkAnswer() {
+    if (answerInput.disabled) return;
     const q = questions[current];
     const val = answerInput.value.trim();
     if (val === '') { answerInput.focus(); return; }
+    stopTimer();
     const user = parseInt(val, 10);
 
     if (user === q.answer) {
-      correct++;
-      correctCount.textContent = correct;
-      feedback.textContent = '✅ Верно!';
+      const gained = 10 + timeLeft; // 10 очков + бонус за скорость
+      score += gained;
+      scoreNow.textContent = score;
+      feedback.textContent = `✅ Верно! +${gained}`;
       feedback.className = 'feedback good';
     } else {
       feedback.textContent = `❌ Неверно. ${q.a} × ${q.b} = ${q.answer}`;
@@ -322,39 +313,53 @@
       setTimeout(() => answerInput.classList.remove('shake'), 400);
     }
     answerInput.disabled = true;
-    progressFill.style.width = ((current + 1) / TOTAL * 100) + '%';
+    nextSoon();
+  }
 
+  function nextSoon() {
+    progressFill.style.width = ((current + 1) / total * 100) + '%';
     setTimeout(() => {
       current++;
-      if (current < TOTAL) renderQuestion();
-      else showResult();
-    }, 900);
+      current < total ? renderQuestion() : showResult();
+    }, 950);
   }
 
-  // --- Результат ---
+  // ---------- Результат ----------
   function showResult() {
     show(resultEl);
-    document.getElementById('resultScore').textContent = `${correct}/${TOTAL}`;
-    const pct = correct / TOTAL;
-    let emoji, text;
-    if (pct === 1)      { emoji = '🏆'; text = 'Идеально! Ты знаешь таблицу на отлично!'; }
-    else if (pct >= 0.8){ emoji = '🎉'; text = 'Отличный результат!'; }
-    else if (pct >= 0.5){ emoji = '👍'; text = 'Неплохо, но можно лучше. Потренируйся ещё!'; }
-    else                { emoji = '💪'; text = 'Не сдавайся — попробуй ещё раз!'; }
+    document.getElementById('resultScore').textContent = `${score} очков`;
+
+    // сколько верных: считаем по набранным очкам не выйдет, поэтому пересчёта нет —
+    // вместо этого покажем максимально возможные очки для понимания
+    const maxScore = total * (10 + PER_Q);
+    document.getElementById('resultDetail').textContent = `из ${maxScore} возможных`;
+
+    const record = getRecord();
+    const recordNew = document.getElementById('recordNew');
+    if (score > record) {
+      localStorage.setItem(RECORD_KEY, score); // сохраняем новый рекорд в память
+      recordNew.textContent = '🏆 Новый рекорд!';
+    } else {
+      recordNew.textContent = `Рекорд: ${record} очков`;
+    }
+
+    const pct = score / maxScore;
+    let emoji;
+    if (pct >= 0.95)     emoji = '🏆';
+    else if (pct >= 0.7) emoji = '🎉';
+    else if (pct >= 0.4) emoji = '👍';
+    else                 emoji = '💪';
     document.getElementById('resultEmoji').textContent = emoji;
-    document.getElementById('resultText').textContent = text;
+    showRecord();
   }
 
-  // --- События ---
+  // ---------- События кнопок ----------
   document.getElementById('startBtn').addEventListener('click', startTraining);
   document.getElementById('checkBtn').addEventListener('click', checkAnswer);
-  document.getElementById('quitBtn').addEventListener('click', () => show(setupEl));
+  document.getElementById('quitBtn').addEventListener('click', () => { stopTimer(); show(setupEl); });
   document.getElementById('menuBtn').addEventListener('click', () => show(setupEl));
   document.getElementById('againBtn').addEventListener('click', startTraining);
-
-  answerInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !answerInput.disabled) checkAnswer();
-  });
+  answerInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') checkAnswer(); });
 </script>
 </body>
 </html>
