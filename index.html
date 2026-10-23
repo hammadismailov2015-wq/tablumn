@@ -142,6 +142,18 @@
   .question.multi { font-size: 32px; line-height: 1.3; }
   .op-btn.wide { grid-column: 1 / -1; }
   .terms { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; margin-bottom: 16px; }
+  /* Игра «Найди пару» */
+  .match-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .match-col { display: flex; flex-direction: column; gap: 10px; }
+  .match-cell {
+    padding: 16px 8px; border: 1px solid var(--line); background: var(--fill); color: var(--ink);
+    border-radius: 12px; text-align: center; font: inherit; font-size: 20px; font-weight: 700;
+    cursor: pointer; font-variant-numeric: tabular-nums; transition: transform .12s, background .15s, border-color .15s;
+  }
+  .match-cell:hover { border-color: var(--violet); transform: translateY(-1px); }
+  .match-cell.sel { border-color: transparent; background: linear-gradient(180deg, var(--violet-2), var(--violet)); color: #fff; }
+  .match-cell.matched { background: var(--mint); color: #06281c; border-color: transparent; opacity: .55; pointer-events: none; }
+  .match-cell.wrong { animation: shake .4s; border-color: var(--coral); }
   .answer-input {
     width: 100%; padding: 18px; font: inherit; font-size: 30px; font-weight: 700; text-align: center;
     border-radius: 16px; border: 2px solid var(--line); background: var(--sunken);
@@ -302,6 +314,7 @@
     <div class="record-line" id="recordLine">🏆 Рекорд: 0 очков</div>
     <button class="start-btn" id="startBtn">Начать тренировку →</button>
     <button class="secondary-btn" id="openTables">📖 Посмотреть таблицы</button>
+    <button class="secondary-btn" id="openMatch">🔗 Найди пару (на время)</button>
   </div>
 
   <!-- ЭКРАН ТРЕНИРОВКИ -->
@@ -345,6 +358,24 @@
     <div class="picker mini" id="tablePick"></div>
     <div id="tableBody"></div>
     <button class="start-btn" id="tablesBack">← В меню</button>
+  </div>
+
+  <!-- ЭКРАН ИГРЫ «НАЙДИ ПАРУ» -->
+  <div id="match" class="hidden">
+    <div class="stats">
+      <span>Пары: <b id="matchFound">0</b>/<b id="matchTotal">6</b></span>
+      <span class="timer" id="matchTimer">⏱ 0.0 с</span>
+    </div>
+    <p class="subtitle">Нажми пример, потом его ответ</p>
+    <div class="match-cols" id="matchCols">
+      <div class="match-col" id="matchLeft"></div>
+      <div class="match-col" id="matchRight"></div>
+    </div>
+    <div class="feedback good hidden" id="matchResult"></div>
+    <div class="row-btns" style="margin-top: 16px;">
+      <button class="btn btn-ghost" id="matchQuit">В меню</button>
+      <button class="btn btn-primary" id="matchAgain">Заново</button>
+    </div>
   </div>
 
 </div>
@@ -699,7 +730,8 @@
   const trainerEl = document.getElementById('trainer');
   const resultEl = document.getElementById('result');
   const tablesEl = document.getElementById('tables');
-  function show(el) { [setupEl, trainerEl, resultEl, tablesEl].forEach(x => x.classList.add('hidden')); el.classList.remove('hidden'); }
+  const matchEl = document.getElementById('match');
+  function show(el) { [setupEl, trainerEl, resultEl, tablesEl, matchEl].forEach(x => x.classList.add('hidden')); el.classList.remove('hidden'); }
   function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 
   // ---------- Текстовые задачи ----------
@@ -1156,6 +1188,103 @@
     }
     tableBody.innerHTML = `<div class="tlist">${rows}</div>`;
   }
+
+  // ---------- Игра «Найди пару» ----------
+  const MATCH_N = 6;
+  const MATCH_BEST_KEY = 'trainer-match-best';
+  const matchColsEl = document.getElementById('matchCols');
+  const matchLeftEl = document.getElementById('matchLeft');
+  const matchRightEl = document.getElementById('matchRight');
+  const matchTimerEl = document.getElementById('matchTimer');
+  const matchFoundEl = document.getElementById('matchFound');
+  const matchResultEl = document.getElementById('matchResult');
+  let matchPairs = [], matchFirst = null, matchFound = 0, matchStart = 0, matchTimerId = null;
+
+  function shuffle(arr) { for (let i = arr.length - 1; i > 0; i--) { const j = rand(0, i); [arr[i], arr[j]] = [arr[j], arr[i]]; } }
+
+  function startMatch() {
+    matchPairs = [];
+    const used = new Set();
+    while (matchPairs.length < MATCH_N) {
+      const a = rand(2, 9), b = rand(2, 9), p = a * b;
+      if (used.has(p)) continue;        // ответы должны быть разными — иначе пара неоднозначна
+      used.add(p);
+      matchPairs.push({ a, b, answer: p });
+    }
+    matchFound = 0; matchFirst = null;
+    matchFoundEl.textContent = 0;
+    document.getElementById('matchTotal').textContent = MATCH_N;
+    matchResultEl.classList.add('hidden');
+    renderMatch();
+    startMatchTimer();
+    show(matchEl);
+  }
+
+  function renderMatch() {
+    matchLeftEl.innerHTML = '';
+    matchRightEl.innerHTML = '';
+    matchPairs.forEach((p, i) => {
+      const l = document.createElement('button');
+      l.className = 'match-cell'; l.dataset.id = i; l.dataset.side = 'L';
+      l.textContent = `${p.a} × ${p.b}`;
+      matchLeftEl.appendChild(l);
+    });
+    const order = [...matchPairs.keys()];
+    shuffle(order);                       // ответы справа — вперемешку
+    order.forEach(i => {
+      const r = document.createElement('button');
+      r.className = 'match-cell'; r.dataset.id = i; r.dataset.side = 'R';
+      r.textContent = matchPairs[i].answer;
+      matchRightEl.appendChild(r);
+    });
+  }
+
+  matchColsEl.addEventListener('click', (e) => {
+    const cell = e.target.closest('.match-cell');
+    if (!cell || cell.classList.contains('matched')) return;
+    if (!matchFirst) { matchFirst = cell; cell.classList.add('sel'); return; }
+    if (matchFirst === cell) { cell.classList.remove('sel'); matchFirst = null; return; }   // снять выбор
+    if (matchFirst.dataset.side === cell.dataset.side) {                                     // та же колонка — перенесли выбор
+      matchFirst.classList.remove('sel'); matchFirst = cell; cell.classList.add('sel'); return;
+    }
+    const a = matchFirst;                                                                    // разные колонки — сравниваем
+    if (a.dataset.id === cell.dataset.id) {
+      a.classList.remove('sel'); a.classList.add('matched'); cell.classList.add('matched');
+      matchFirst = null; matchFound++; matchFoundEl.textContent = matchFound;
+      if (matchFound === MATCH_N) finishMatch();
+    } else {
+      a.classList.remove('sel');
+      a.classList.add('wrong'); cell.classList.add('wrong');
+      matchFirst = null;
+      setTimeout(() => { a.classList.remove('wrong'); cell.classList.remove('wrong'); }, 450);
+    }
+  });
+
+  function startMatchTimer() {
+    matchStart = Date.now();
+    updateMatchTimer();
+    matchTimerId = setInterval(updateMatchTimer, 100);
+  }
+  function updateMatchTimer() {
+    matchTimerEl.textContent = '⏱ ' + ((Date.now() - matchStart) / 1000).toFixed(1) + ' с';
+  }
+  function stopMatchTimer() { clearInterval(matchTimerId); matchTimerId = null; }
+
+  function finishMatch() {
+    stopMatchTimer();
+    const s = (Date.now() - matchStart) / 1000;
+    matchTimerEl.textContent = '⏱ ' + s.toFixed(1) + ' с';
+    const best = parseFloat(localStorage.getItem(MATCH_BEST_KEY) || '0');
+    let msg = `🎉 Готово за ${s.toFixed(1)} с!`;
+    if (!best || s < best) { localStorage.setItem(MATCH_BEST_KEY, s.toFixed(1)); msg += ' 🏆 Новый рекорд!'; }
+    else { msg += `  Рекорд: ${best.toFixed(1)} с`; }
+    matchResultEl.textContent = msg;
+    matchResultEl.classList.remove('hidden');
+  }
+
+  document.getElementById('openMatch').addEventListener('click', startMatch);
+  document.getElementById('matchQuit').addEventListener('click', () => { stopMatchTimer(); show(setupEl); });
+  document.getElementById('matchAgain').addEventListener('click', startMatch);
 
   // ---------- События ----------
   document.getElementById('openTables').addEventListener('click', () => { renderTable(); show(tablesEl); });
