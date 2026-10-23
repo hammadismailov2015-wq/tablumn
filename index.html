@@ -366,17 +366,18 @@
       <span>Пары: <b id="matchFound">0</b>/<b id="matchTotal">6</b></span>
       <span class="timer" id="matchTimer">⏱ 0.0 с</span>
     </div>
-    <p class="subtitle">Нажми пример, потом его ответ</p>
+    <p class="subtitle" id="matchHint">Выбери, на что умножать, и нажми ▶ Пуск</p>
     <div class="label">Умножать на</div>
     <div class="picker mini" id="matchPick"></div>
-    <div class="match-cols" id="matchCols">
+    <div class="match-cols hidden" id="matchCols">
       <div class="match-col" id="matchLeft"></div>
       <div class="match-col" id="matchRight"></div>
     </div>
     <div class="feedback good hidden" id="matchResult"></div>
     <div class="row-btns" style="margin-top: 16px;">
       <button class="btn btn-ghost" id="matchQuit">В меню</button>
-      <button class="btn btn-primary" id="matchAgain">Заново</button>
+      <button class="btn btn-primary" id="matchStart">▶ Пуск</button>
+      <button class="btn btn-primary hidden" id="matchAgain">Заново</button>
     </div>
   </div>
 
@@ -1221,14 +1222,29 @@
     const b = e.target.closest('.pick-btn');
     if (!b) return;
     matchFactor = b.dataset.factor === 'mix' ? 'mix' : parseInt(b.dataset.factor, 10);
-    highlightFactor();
-    startMatch();   // перезапуск игры с новым множителем
+    readyMatch();   // выбрали множитель — ждём нажатия «Пуск»
   });
 
   function shuffle(arr) { for (let i = arr.length - 1; i > 0; i--) { const j = rand(0, i); [arr[i], arr[j]] = [arr[j], arr[i]]; } }
 
+  // Экран игры в режиме «готов к старту»: примеров не видно, таймер стоит
+  function readyMatch() {
+    stopMatchTimer();
+    matchColsEl.classList.add('hidden');
+    matchResultEl.classList.add('hidden');
+    matchFoundEl.textContent = 0;
+    matchTimerEl.textContent = '⏱ 0.0 с';
+    document.getElementById('matchHint').textContent = 'Выбери, на что умножать, и нажми ▶ Пуск';
+    document.getElementById('matchStart').classList.remove('hidden');
+    document.getElementById('matchAgain').classList.add('hidden');
+    highlightFactor();
+  }
+
+  function enterMatch() { readyMatch(); show(matchEl); }
+
+  // Запуск игры: строим пары, показываем их и запускаем таймер
   function startMatch() {
-    stopMatchTimer();     // на случай перезапуска — остановить старый таймер
+    stopMatchTimer();
     matchPairs = [];
     if (matchFactor === 'mix') {
       const used = new Set();
@@ -1247,10 +1263,12 @@
     matchFoundEl.textContent = 0;
     document.getElementById('matchTotal').textContent = MATCH_N;
     matchResultEl.classList.add('hidden');
-    highlightFactor();
+    matchColsEl.classList.remove('hidden');     // показываем примеры
+    document.getElementById('matchHint').textContent = 'Нажми пример, потом его ответ';
+    document.getElementById('matchStart').classList.add('hidden');
+    document.getElementById('matchAgain').classList.remove('hidden');
     renderMatch();
     startMatchTimer();
-    show(matchEl);
   }
 
   function renderMatch() {
@@ -1315,7 +1333,8 @@
     matchResultEl.classList.remove('hidden');
   }
 
-  document.getElementById('openMatch').addEventListener('click', startMatch);
+  document.getElementById('openMatch').addEventListener('click', enterMatch);
+  document.getElementById('matchStart').addEventListener('click', startMatch);
   document.getElementById('matchQuit').addEventListener('click', () => { stopMatchTimer(); show(setupEl); });
   document.getElementById('matchAgain').addEventListener('click', startMatch);
 
