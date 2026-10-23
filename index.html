@@ -367,6 +367,8 @@
       <span class="timer" id="matchTimer">⏱ 0.0 с</span>
     </div>
     <p class="subtitle">Нажми пример, потом его ответ</p>
+    <div class="label">Умножать на</div>
+    <div class="picker mini" id="matchPick"></div>
     <div class="match-cols" id="matchCols">
       <div class="match-col" id="matchLeft"></div>
       <div class="match-col" id="matchRight"></div>
@@ -1199,22 +1201,53 @@
   const matchFoundEl = document.getElementById('matchFound');
   const matchResultEl = document.getElementById('matchResult');
   let matchPairs = [], matchFirst = null, matchFound = 0, matchStart = 0, matchTimerId = null;
+  let matchFactor = 'mix';   // на что умножать: число 2..10 или 'mix' (разные)
+
+  // Кнопки выбора множителя в игре
+  const matchPickEl = document.getElementById('matchPick');
+  for (let n = 2; n <= 10; n++) {
+    const b = document.createElement('button');
+    b.className = 'pick-btn mini'; b.textContent = n; b.dataset.factor = n;
+    matchPickEl.appendChild(b);
+  }
+  const mixBtn = document.createElement('button');
+  mixBtn.className = 'pick-btn mini all'; mixBtn.textContent = '🎲 Разные'; mixBtn.dataset.factor = 'mix';
+  matchPickEl.appendChild(mixBtn);
+  function highlightFactor() {
+    const cur = String(matchFactor);
+    [...matchPickEl.children].forEach(x => x.classList.toggle('active', x.dataset.factor === cur));
+  }
+  matchPickEl.addEventListener('click', (e) => {
+    const b = e.target.closest('.pick-btn');
+    if (!b) return;
+    matchFactor = b.dataset.factor === 'mix' ? 'mix' : parseInt(b.dataset.factor, 10);
+    highlightFactor();
+    startMatch();   // перезапуск игры с новым множителем
+  });
 
   function shuffle(arr) { for (let i = arr.length - 1; i > 0; i--) { const j = rand(0, i); [arr[i], arr[j]] = [arr[j], arr[i]]; } }
 
   function startMatch() {
+    stopMatchTimer();     // на случай перезапуска — остановить старый таймер
     matchPairs = [];
-    const used = new Set();
-    while (matchPairs.length < MATCH_N) {
-      const a = rand(2, 9), b = rand(2, 9), p = a * b;
-      if (used.has(p)) continue;        // ответы должны быть разными — иначе пара неоднозначна
-      used.add(p);
-      matchPairs.push({ a, b, answer: p });
+    if (matchFactor === 'mix') {
+      const used = new Set();
+      while (matchPairs.length < MATCH_N) {
+        const a = rand(2, 9), b = rand(2, 9), p = a * b;
+        if (used.has(p)) continue;        // ответы должны быть разными — иначе пара неоднозначна
+        used.add(p);
+        matchPairs.push({ a, b, answer: p });
+      }
+    } else {
+      const ks = Array.from({ length: 10 }, (_, i) => i + 1);  // 1..10
+      shuffle(ks);
+      ks.slice(0, MATCH_N).forEach(k => matchPairs.push({ a: matchFactor, b: k, answer: matchFactor * k }));
     }
     matchFound = 0; matchFirst = null;
     matchFoundEl.textContent = 0;
     document.getElementById('matchTotal').textContent = MATCH_N;
     matchResultEl.classList.add('hidden');
+    highlightFactor();
     renderMatch();
     startMatchTimer();
     show(matchEl);
