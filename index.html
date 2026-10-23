@@ -366,8 +366,10 @@
       <span>Пары: <b id="matchFound">0</b>/<b id="matchTotal">6</b></span>
       <span class="timer" id="matchTimer">⏱ 0.0 с</span>
     </div>
-    <p class="subtitle" id="matchHint">Выбери, на что умножать, и нажми ▶ Пуск</p>
-    <div class="label">Умножать на</div>
+    <p class="subtitle" id="matchHint">Выбери действие и число, потом нажми ▶ Пуск</p>
+    <div class="label">Действие</div>
+    <div class="ops" id="matchOps"></div>
+    <div class="label" id="matchFactorLabel">Умножать на</div>
     <div class="picker mini" id="matchPick"></div>
     <div class="match-cols hidden" id="matchCols">
       <div class="match-col" id="matchLeft"></div>
@@ -1202,9 +1204,30 @@
   const matchFoundEl = document.getElementById('matchFound');
   const matchResultEl = document.getElementById('matchResult');
   let matchPairs = [], matchFirst = null, matchFound = 0, matchStart = 0, matchTimerId = null;
-  let matchFactor = 'mix';   // на что умножать: число 2..10 или 'mix' (разные)
+  let matchFactor = 'mix';   // таблица числа 2..10 или 'mix' (разные)
+  let matchOp = 'mul';       // действие в игре: mul/div/add/sub
+  const MATCH_OP_LABEL = { mul: 'Умножать на', div: 'Делить на', add: 'Прибавлять', sub: 'Вычитать' };
 
-  // Кнопки выбора множителя в игре
+  // Кнопки выбора действия в игре
+  const matchOpsEl = document.getElementById('matchOps');
+  ['mul', 'div', 'add', 'sub'].forEach((key, idx) => {
+    const b = document.createElement('button');
+    b.className = 'op-btn' + (idx === 0 ? ' active' : '');
+    b.dataset.mop = key;
+    b.innerHTML = `<span class="op-emoji">${OPS[key].emoji}</span> ${OPS[key].name}`;
+    matchOpsEl.appendChild(b);
+  });
+  matchOpsEl.addEventListener('click', (e) => {
+    const b = e.target.closest('.op-btn');
+    if (!b) return;
+    matchOpsEl.querySelectorAll('.op-btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    matchOp = b.dataset.mop;
+    document.getElementById('matchFactorLabel').textContent = MATCH_OP_LABEL[matchOp];
+    readyMatch();   // сменили действие — ждём «Пуск»
+  });
+
+  // Кнопки выбора числа (таблицы) в игре
   const matchPickEl = document.getElementById('matchPick');
   for (let n = 2; n <= 10; n++) {
     const b = document.createElement('button');
@@ -1227,6 +1250,16 @@
 
   function shuffle(arr) { for (let i = arr.length - 1; i > 0; i--) { const j = rand(0, i); [arr[i], arr[j]] = [arr[j], arr[i]]; } }
 
+  // Один пример для игры: {text, answer}. Число N — выбранная таблица (или случайное в «Разные»).
+  function makeMatchPair() {
+    const N = matchFactor === 'mix' ? rand(2, 9) : matchFactor;
+    const k = rand(1, 10);
+    if (matchOp === 'mul') return { text: `${N} × ${k}`, answer: N * k };
+    if (matchOp === 'add') return { text: `${N} + ${k}`, answer: N + k };
+    if (matchOp === 'div') return { text: `${N * k} ÷ ${N}`, answer: k };
+    return { text: `${N + k} − ${N}`, answer: k };   // вычитание
+  }
+
   // Экран игры в режиме «готов к старту»: примеров не видно, таймер стоит
   function readyMatch() {
     stopMatchTimer();
@@ -1234,7 +1267,7 @@
     matchResultEl.classList.add('hidden');
     matchFoundEl.textContent = 0;
     matchTimerEl.textContent = '⏱ 0.0 с';
-    document.getElementById('matchHint').textContent = 'Выбери, на что умножать, и нажми ▶ Пуск';
+    document.getElementById('matchHint').textContent = 'Выбери действие и число, потом нажми ▶ Пуск';
     document.getElementById('matchStart').classList.remove('hidden');
     document.getElementById('matchAgain').classList.add('hidden');
     highlightFactor();
@@ -1242,22 +1275,17 @@
 
   function enterMatch() { readyMatch(); show(matchEl); }
 
-  // Запуск игры: строим пары, показываем их и запускаем таймер
+  // Запуск игры: строим пары с РАЗНЫМИ ответами, показываем их и запускаем таймер
   function startMatch() {
     stopMatchTimer();
     matchPairs = [];
-    if (matchFactor === 'mix') {
-      const used = new Set();
-      while (matchPairs.length < MATCH_N) {
-        const a = rand(2, 9), b = rand(2, 9), p = a * b;
-        if (used.has(p)) continue;        // ответы должны быть разными — иначе пара неоднозначна
-        used.add(p);
-        matchPairs.push({ a, b, answer: p });
-      }
-    } else {
-      const ks = Array.from({ length: 10 }, (_, i) => i + 1);  // 1..10
-      shuffle(ks);
-      ks.slice(0, MATCH_N).forEach(k => matchPairs.push({ a: matchFactor, b: k, answer: matchFactor * k }));
+    const used = new Set();
+    let guard = 0;
+    while (matchPairs.length < MATCH_N && guard++ < 500) {
+      const p = makeMatchPair();
+      if (used.has(p.answer)) continue;   // ответы должны быть разными — иначе пара неоднозначна
+      used.add(p.answer);
+      matchPairs.push(p);
     }
     matchFound = 0; matchFirst = null;
     matchFoundEl.textContent = 0;
@@ -1277,7 +1305,7 @@
     matchPairs.forEach((p, i) => {
       const l = document.createElement('button');
       l.className = 'match-cell'; l.dataset.id = i; l.dataset.side = 'L';
-      l.textContent = `${p.a} × ${p.b}`;
+      l.textContent = p.text;
       matchLeftEl.appendChild(l);
     });
     const order = [...matchPairs.keys()];
@@ -1325,9 +1353,10 @@
     stopMatchTimer();
     const s = (Date.now() - matchStart) / 1000;
     matchTimerEl.textContent = '⏱ ' + s.toFixed(1) + ' с';
-    const best = parseFloat(localStorage.getItem(MATCH_BEST_KEY) || '0');
+    const key = MATCH_BEST_KEY + '-' + matchOp;   // свой рекорд для каждого действия
+    const best = parseFloat(localStorage.getItem(key) || '0');
     let msg = `🎉 Готово за ${s.toFixed(1)} с!`;
-    if (!best || s < best) { localStorage.setItem(MATCH_BEST_KEY, s.toFixed(1)); msg += ' 🏆 Новый рекорд!'; }
+    if (!best || s < best) { localStorage.setItem(key, s.toFixed(1)); msg += ' 🏆 Новый рекорд!'; }
     else { msg += `  Рекорд: ${best.toFixed(1)} с`; }
     matchResultEl.textContent = msg;
     matchResultEl.classList.remove('hidden');
