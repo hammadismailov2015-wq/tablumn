@@ -371,6 +371,7 @@
     <div class="ops" id="matchOps"></div>
     <div class="label" id="matchFactorLabel">Умножать на</div>
     <div class="picker mini" id="matchPick"></div>
+    <div class="record-line" id="matchRecord">🏆 Рекорд: —</div>
     <div class="match-cols hidden" id="matchCols">
       <div class="match-col" id="matchLeft"></div>
       <div class="match-col" id="matchRight"></div>
@@ -1203,10 +1204,18 @@
   const matchTimerEl = document.getElementById('matchTimer');
   const matchFoundEl = document.getElementById('matchFound');
   const matchResultEl = document.getElementById('matchResult');
+  const matchRecordEl = document.getElementById('matchRecord');
   let matchPairs = [], matchFirst = null, matchFound = 0, matchStart = 0, matchTimerId = null;
   let matchFactor = 'mix';   // таблица числа 2..10 или 'mix' (разные)
   let matchOp = 'mul';       // действие в игре: mul/div/add/sub
   const MATCH_OP_LABEL = { mul: 'Умножать на', div: 'Делить на', add: 'Прибавлять', sub: 'Вычитать' };
+
+  // рекорд — свой для каждой пары «действие + число»
+  function matchBestKey() { return MATCH_BEST_KEY + '-' + matchOp + '-' + matchFactor; }
+  function updateMatchRecord() {
+    const best = parseFloat(localStorage.getItem(matchBestKey()) || '0');
+    matchRecordEl.textContent = best ? `🏆 Рекорд: ${best.toFixed(1)} с` : '🏆 Рекорд: —';
+  }
 
   // Кнопки выбора действия в игре
   const matchOpsEl = document.getElementById('matchOps');
@@ -1271,6 +1280,7 @@
     document.getElementById('matchStart').classList.remove('hidden');
     document.getElementById('matchAgain').classList.add('hidden');
     highlightFactor();
+    updateMatchRecord();
   }
 
   function enterMatch() { readyMatch(); show(matchEl); }
@@ -1295,6 +1305,7 @@
     document.getElementById('matchHint').textContent = 'Нажми пример, потом его ответ';
     document.getElementById('matchStart').classList.add('hidden');
     document.getElementById('matchAgain').classList.remove('hidden');
+    updateMatchRecord();
     renderMatch();
     startMatchTimer();
   }
@@ -1353,13 +1364,14 @@
     stopMatchTimer();
     const s = (Date.now() - matchStart) / 1000;
     matchTimerEl.textContent = '⏱ ' + s.toFixed(1) + ' с';
-    const key = MATCH_BEST_KEY + '-' + matchOp;   // свой рекорд для каждого действия
+    const key = matchBestKey();   // свой рекорд для действия и числа
     const best = parseFloat(localStorage.getItem(key) || '0');
     let msg = `🎉 Готово за ${s.toFixed(1)} с!`;
     if (!best || s < best) { localStorage.setItem(key, s.toFixed(1)); msg += ' 🏆 Новый рекорд!'; }
     else { msg += `  Рекорд: ${best.toFixed(1)} с`; }
     matchResultEl.textContent = msg;
     matchResultEl.classList.remove('hidden');
+    updateMatchRecord();
   }
 
   document.getElementById('openMatch').addEventListener('click', enterMatch);
